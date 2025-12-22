@@ -49,7 +49,7 @@ function ToastItem({ t, onClose }) {
 export default function Toasts() {
   const { toasts, dismissToast } = useToast();
   return (
-    <div className="fixed top-4 right-4 z-[100] space-y-2">
+    <div className="fixed top-4 right-4 z-[100] space-y-2" role="status" aria-live="polite">
       {toasts.map((t) => (
         <ToastItem key={t.id} t={t} onClose={() => dismissToast(t.id)} />
       ))}

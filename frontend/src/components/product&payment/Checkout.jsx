@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext.jsx';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { apiPost } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import Loader from '../../common/Loader.jsx';
 

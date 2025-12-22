@@ -1,6 +1,7 @@
 const express = require('express');
 const Order = require('../models/Order');
 const auth = require('../middleware/auth');
+const AuditLog = require('../models/AuditLog');
 const PDFDocument = require('pdfkit');
 
 const router = express.Router();
@@ -9,9 +10,10 @@ router.use(auth);
 router.use(auth.requireAdmin);
 
 // GET /api/admin/orders - list orders (recent first)
+// Do not include orders that are in 'payment_initiated' state (not yet confirmed)
 router.get('/', async (req, res) => {
   try {
-    const orders = await Order.find({}).sort({ createdAt: -1 }).populate('user', 'name email');
+    const orders = await Order.find({ status: { $ne: 'payment_initiated' } }).sort({ createdAt: -1 }).populate('user', 'name email');
     res.json(orders);
   } catch (err) {
     console.error(err);
@@ -20,14 +22,35 @@ router.get('/', async (req, res) => {
 });
 
 // GET /api/admin/orders/:id - get order details user items products price quantity
-router.get('/:id', async (req, res) => {
+router.get('/', async (req, res) => {
   try {
-    const order = await Order.findById(req.params.id).populate('user', 'name email').populate('items.product', 'title price slug');
-    if (!order) return res.status(404).json({ error: 'Order not found' });
-    res.json(order);
+    // Support optional filters: startDate, endDate (YYYY-MM-DD), status, minTotal, maxTotal, limit, sort
+    const { startDate, endDate, status, minTotal, maxTotal, limit, sortBy, sortDir } = req.query || {};
+    const q = {};
+    // Exclude payment_initiated by default
+    q.status = { $ne: 'payment_initiated' };
+    if (status) {
+      if (status === 'all') delete q.status;
+      else q.status = status;
+    }
+    if (startDate || endDate) {
+      q.createdAt = {};
+      if (startDate) q.createdAt.$gte = new Date(`${startDate}T00:00:00`);
+      if (endDate) q.createdAt.$lte = new Date(`${endDate}T23:59:59`);
+    }
+    if (minTotal) q.subtotal = Object.assign(q.subtotal || {}, { $gte: Number(minTotal) });
+    if (maxTotal) q.subtotal = Object.assign(q.subtotal || {}, { $lte: Number(maxTotal) });
+
+    const sortField = sortBy === 'subtotal' ? 'subtotal' : 'createdAt';
+    const dir = String(sortDir || 'desc').toLowerCase() === 'asc' ? 1 : -1;
+
+    const lim = Math.min(1000, Math.max(1, Number(limit) || 100));
+
+    const orders = await Order.find(q).sort({ [sortField]: dir }).limit(lim).populate('user', 'name email');
+    res.json(orders);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch order' });
+    res.status(500).json({ error: 'Failed to fetch orders' });
   }
 });
 
@@ -41,6 +64,22 @@ router.put('/:id', async (req, res) => {
     }
     const order = await Order.findByIdAndUpdate(req.params.id, update, { new: true });
     if (!order) return res.status(404).json({ error: 'Order not found with given email ID' });
+    try {
+      await AuditLog.create({
+        user: req.user?.id,
+        userEmail: req.user?.email,
+        userName: req.user?.name,
+        action: 'update_order',
+        resourceType: 'order',
+        resourceId: String(order._id),
+        details: { update },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (logErr) {
+      console.warn('[UPDATE ORDER] Failed to write audit log:', logErr && logErr.message);
+    }
+
     res.json(order);
   } catch (err) {
     console.error(err);

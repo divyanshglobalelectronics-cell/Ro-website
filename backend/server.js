@@ -12,6 +12,7 @@ const authRouter = require('./routes/auth');
 const adminProductsRouter = require('./routes/adminProducts');
 const adminUsersRouter = require('./routes/adminUsers');
 const adminOrdersRouter = require('./routes/adminOrders');
+const adminLogsRouter = require('./routes/adminLogs');
 const adminAnalyticsRouter = require('./routes/adminAnalytics');
 const paymentsRouter = require('./routes/payments');
 const refundsRouter = require('./routes/refunds');
@@ -19,8 +20,6 @@ const adminRefundsRouter = require('./routes/adminRefunds');
 
 const app = express();
 
-// Trust proxy if behind a reverse proxy (e.g., AWS, Heroku, Nginx)
-// This allows rate limiting and security headers to work correctly
 app.set('trust proxy', 1);
 
 // Rate limiting middleware (configurable via env)
@@ -99,6 +98,7 @@ app.use('/api/categories', categoriesRouter);
 app.use('/api/admin/products', adminProductsRouter);
 app.use('/api/admin/users', adminUsersRouter);
 app.use('/api/admin/orders', adminOrdersRouter);
+app.use('/api/admin/logs', adminLogsRouter);
 app.use('/api/admin/analytics', adminAnalyticsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/payments', paymentsRouter);

@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { FaTools, FaRecycle, FaPlusCircle, FaFlask } from "react-icons/fa";
 
@@ -63,7 +62,7 @@ export default function Services() {
                   Enquire
                 </Link>
                 <a
-                  href={`https://wa.me/919999999999?text=${encodeURIComponent(
+                  href={`https://wa.me/8948858489?text=${encodeURIComponent(
                     "I want to know about " + s.title
                   )}`}
                   target="_blank"

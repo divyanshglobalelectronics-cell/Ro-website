@@ -1,94 +1,4 @@
-// import React, { useState } from 'react';
-// import { useNavigate, Link, useLocation } from 'react-router-dom';
-// import { useAuth } from '../context/AuthContext.jsx';
-// import { useToast } from '../context/ToastContext.jsx';
-// import { FiEye, FiEyeOff } from 'react-icons/fi';
-
-// export default function Login() {
-//   const { loginWithToken } = useAuth();
-//   const navigate = useNavigate();
-//   const location = useLocation();
-//   const params = new URLSearchParams(location.search);
-//   const returnTo = params.get('returnTo') || '/';
-//   const { showToast } = useToast();
-//   const [form, setForm] = useState({ email: '', password: '' });
-//   const [error, setError] = useState('');
-//   const [loading, setLoading] = useState(false);
-//   const [showPassword, setShowPassword] = useState(false);
-
-//   const submit = async (e) => {
-//     e.preventDefault();
-//     setError('');
-//     setLoading(true);
-//     try {
-//       const res = await fetch('/api/auth/login', {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify(form),
-//       });
-//       const data = await res.json();
-//       if (!res.ok) throw new Error(data.error || 'Login failed');
-//       loginWithToken(data.token, data.user);
-//       // If this user is an admin, send them to the admin dashboard
-//       if (data.user && data.user.isAdmin) {
-//         navigate('/admin');
-//       } else {
-//         navigate(returnTo);
-//       }
-//     } catch (e) {
-//       setError(e.message || 'Login failed');
-//       showToast(e.message || 'Login failed', { type: 'error' });
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   return (
-//     <div className="bg-[linear-gradient(156.2deg,_rgba(0,0,0,1)_14.8%,_rgba(32,104,177,1)_68.1%,_rgba(222,229,237,1)_129%)]">
-//       <div className='max-w-md flex mx-auto px-4  sm:px-6 lg:px-8 py-10 flex-col items-center justify-center'>
-//         <h1 className="text-2xl font-bold text-white">Login</h1>
-//         <form onSubmit={submit} className="mt-6 bg-white border rounded p-6 space-y-4">
-//           <div>
-//             <label className="block text-sm text-gray-700">Email</label>
-//             <input type="email" className="mt-1 w-full border rounded px-3 py-2" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
-//           </div>
-//           <div>
-//             <label className="block text-sm text-gray-700">Password</label>
-//             <div className="mt-1 relative">
-//               <input
-//                 type={showPassword ? 'text' : 'password'}
-//                 className="w-full border rounded px-3 py-2 pr-10"
-//                 required
-//                 value={form.password}
-//                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-//               />
-//               <button
-//                 type="button"
-//                 aria-label={showPassword ? 'Hide password' : 'Show password'}
-//                 className="absolute inset-y-0 right-2 flex items-center text-gray-500 hover:text-gray-700"
-//                 onClick={() => setShowPassword((v) => !v)}
-//               >
-//                 {showPassword ? <FiEyeOff /> : <FiEye />}
-//               </button>
-//             </div>
-//           </div>
-//           <button type="submit" disabled={loading} className="w-full px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded">
-//             {loading ? 'Logging in...' : 'Login'}
-//           </button>
-//           <div className="flex items-center justify-between text-sm gap-2 text-gray-600">
-//             <span>Don't have an account? <Link to={`/signup?returnTo=${encodeURIComponent(returnTo)}`} className="text-blue-600 hover:underline">Sign up</Link></span>
-//             <Link to="/forgot-password" className="text-blue-600 hover:underline">Forgot password?</Link>
-//           </div>
-//         </form>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
-
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
@@ -117,7 +27,7 @@ export default function Login() {
         body: JSON.stringify(form),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Login failed");
+      if (!res.ok) throw new Error(data.error || "Login failed please try again");
       loginWithToken(data.token, data.user);
       if (data.user && data.user.isAdmin) {
         navigate("/admin");
@@ -125,8 +35,8 @@ export default function Login() {
         navigate(returnTo);
       }
     } catch (e) {
-      setError(e.message || "Login failed");
-      showToast(e.message || "Login failed", { type: "error" });
+      setError(e.message || "Login failed please try again");
+      showToast(e.message || "Login failed please try again", { type: "error" });
     } finally {
       setLoading(false);
     }

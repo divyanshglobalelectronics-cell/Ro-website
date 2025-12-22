@@ -1,6 +1,7 @@
 const express = require('express');
 const Product = require('../models/Product');
 const Category = require('../models/Category');
+const AuditLog = require('../models/AuditLog');
 const auth = require('../middleware/auth');
 
 const router = express.Router();
@@ -68,6 +69,23 @@ router.post('/', async (req, res) => {
     console.log('[CREATE PRODUCT] Saving product to MongoDB:', { title, slug: finalSlug, price, category: categoryId });
     await prod.save();
     console.log('[CREATE PRODUCT] Product saved successfully with ID:', prod._id);
+    // create audit log
+    try {
+      await AuditLog.create({
+        user: req.user?.id,
+        userEmail: req.user?.email,
+        userName: req.user?.name,
+        action: 'create_product',
+        resourceType: 'product',
+        resourceId: String(prod._id),
+        details: { title: prod.title, price: prod.price },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (logErr) {
+      console.warn('[CREATE PRODUCT] Failed to write audit log:', logErr && logErr.message);
+    }
+
     const populated = await Product.findById(prod._id).populate('category', 'name slug');
     console.log('[CREATE PRODUCT] Returning populated product:', JSON.stringify(populated, null, 2));
     res.status(201).json(populated);
@@ -120,6 +138,23 @@ router.put('/:id', async (req, res) => {
 
     const prod = await Product.findByIdAndUpdate(req.params.id, update, { new: true }).populate('category', 'name slug');
     if (!prod) return res.status(404).json({ error: 'Product not found' });
+    // audit log for update
+    try {
+      await AuditLog.create({
+        user: req.user?.id,
+        userEmail: req.user?.email,
+        userName: req.user?.name,
+        action: 'update_product',
+        resourceType: 'product',
+        resourceId: String(prod._id),
+        details: { update },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (logErr) {
+      console.warn('[UPDATE PRODUCT] Failed to write audit log:', logErr && logErr.message);
+    }
+
     res.json(prod);
   } catch (err) {
     console.error(err);
@@ -132,6 +167,23 @@ router.delete('/:id', async (req, res) => {
   try {
     const prod = await Product.findByIdAndDelete(req.params.id);
     if (!prod) return res.status(404).json({ error: 'Product not found' });
+    // audit log for delete
+    try {
+      await AuditLog.create({
+        user: req.user?.id,
+        userEmail: req.user?.email,
+        userName: req.user?.name,
+        action: 'delete_product',
+        resourceType: 'product',
+        resourceId: String(prod._id),
+        details: { title: prod.title, price: prod.price },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (logErr) {
+      console.warn('[DELETE PRODUCT] Failed to write audit log:', logErr && logErr.message);
+    }
+
     res.json({ message: 'Product deleted' });
   } catch (err) {
     console.error(err);

@@ -52,6 +52,7 @@ export default function Header() {
             <div className="absolute left-0 top-full z-50 hidden group-hover:block group-focus-within:block bg-white shadow-xl rounded-xl p-4 w-64 border border-gray-200">
               <ul className="space-y-1 text-sm">
                 <li><Link className="block px-3 py-2 rounded-lg hover:bg-green-50 text-gray-700" to="/ro-installation">📦 RO Installation</Link></li>
+                <li><Link className="block px-3 py-2 rounded-lg hover:bg-green-50 text-gray-700" to="/faqs">📦 FAQS</Link></li>
               </ul>
             </div>
           </div>

@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const Order = require('../models/Order');
+const AuditLog = require('../models/AuditLog');
 
 const router = express.Router();
 
@@ -152,6 +153,25 @@ router.post('/payu/callback', express.urlencoded({ extended: false }), async (re
             error_Message: body.error_Message || null,
           };
           await order.save();
+
+          // If payment just confirmed, create an audit log now to mark the placed order
+          if (ok && successLike) {
+            try {
+              await AuditLog.create({
+                user: order.user || null,
+                userEmail: order.customer?.email || (order.user && order.user.email) || '',
+                userName: order.customer?.name || (order.user && order.user.name) || '',
+                action: 'user_placed_order',
+                resourceType: 'order',
+                resourceId: String(order._id),
+                details: { subtotal: order.subtotal, items: order.items, paymentMethod: order.paymentMethod },
+                ip: req.ip,
+                userAgent: req.get('User-Agent') || '',
+              });
+            } catch (e) {
+              console.warn('[AUDIT] Failed to write user_placed_order log on payment callback:', e && e.message);
+            }
+          }
         }
       } catch (e) {
         console.error('Order update error', e);

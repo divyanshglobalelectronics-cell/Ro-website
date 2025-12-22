@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import AdminProducts from './AdminProducts.jsx';
+import AdminLogs from './AdminLogs.jsx';
+import Sparkline from './Sparkline.jsx';
+import ConfirmationModal from '../common/ConfirmationModal.jsx';
+import { useNavigate } from 'react-router-dom';
 import { apiGet, apiPut, apiDelete } from '../../api/client.js';
+import { useToast } from '../../context/ToastContext.jsx';
+import Skeleton from '../../common/Skeleton.jsx';
 
 export default function AdminDashboard() {
     const { user, token, loading } = useAuth();
+    const { showToast } = useToast();
+    const navigate = useNavigate();
     const [tab, setTab] = useState('products');
     const [users, setUsers] = useState([]);
     const [orders, setOrders] = useState([]);
@@ -12,12 +20,20 @@ export default function AdminDashboard() {
     const [loadingData, setLoadingData] = useState(true);
     const [analyticsData, setAnalyticsData] = useState(null);
     const [analyticsLoading, setAnalyticsLoading] = useState(false);
+    const [funnelData, setFunnelData] = useState(null);
+    const [segmentsData, setSegmentsData] = useState(null);
+    const [paymentMetrics, setPaymentMetrics] = useState(null);
+    const [customersSummary, setCustomersSummary] = useState(null);
+    const [categoriesData, setCategoriesData] = useState(null);
+    const [geoData, setGeoData] = useState(null);
     const [error, setError] = useState('');
     const [newUserForm, setNewUserForm] = useState({ name: '', email: '', password: '', isAdmin: false });
     const [creatingUser, setCreatingUser] = useState(false);
     const [flip, setFlip] = useState(false);
     const [range, setRange] = useState('30d');
     const [trendMetric, setTrendMetric] = useState('revenue'); // 'revenue' | 'orders'
+    const [categories, setCategories] = useState([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState('');
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
     const [orderStatusFilter, setOrderStatusFilter] = useState('all'); // all|pending|confirmed|shipped|delivered|cancelled
@@ -28,9 +44,18 @@ export default function AdminDashboard() {
     const [usersPageSize, setUsersPageSize] = useState(10);
     const [ordersPage, setOrdersPage] = useState(1);
     const [ordersPageSize, setOrdersPageSize] = useState(10);
-    const [viewOpen,setViewOpen] = useState(false);
+    const [viewOpen, setViewOpen] = useState(false);
+    const [drillOpen, setDrillOpen] = useState(false);
+    const [drillTitle, setDrillTitle] = useState('');
+    const [drillItems, setDrillItems] = useState([]);
+    const [drillType, setDrillType] = useState('');
+    const [drillLoading, setDrillLoading] = useState(false);
+    const [drillPage, setDrillPage] = useState(1);
+    const [drillLimit, setDrillLimit] = useState(50);
+    const [drillTotal, setDrillTotal] = useState(null);
+    const [drillServer, setDrillServer] = useState(false);
 
-    function viewHandler(){
+    function viewHandler() {
         // console.log(viewOpen);
         setViewOpen(!viewOpen);
     }
@@ -58,13 +83,16 @@ export default function AdminDashboard() {
             if (newUserForm.isAdmin) {
                 const updated = await apiPut(`/api/admin/users/${data.user.id}`, { isAdmin: true }, token);
                 setUsers(prev => [updated, ...prev]);
+                showToast('User created and promoted to admin', { type: 'success' });
             } else {
                 setUsers(prev => [data.user, ...prev]);
+                showToast('User created', { type: 'success' });
             }
             setNewUserForm({ name: '', email: '', password: '', isAdmin: false });
             setError('');
         } catch (e) {
             setError(e.message || 'Failed to create user');
+            showToast(e.message || 'Failed to create user', { type: 'error' });
         } finally {
             setCreatingUser(false);
         }
@@ -84,6 +112,7 @@ export default function AdminDashboard() {
             setRefunds(r);
         } catch (e) {
             setError(e.message || 'Failed to load admin data');
+            showToast(e.message || 'Failed to load admin data', { type: 'error' });
         } finally {
             setLoadingData(false);
             setTimeout(() => setFlip(false), 1000);
@@ -101,10 +130,32 @@ export default function AdminDashboard() {
             }
             params.set('group', 'month');
             params.set('includeCancelled', 'false');
+            if (selectedCategoryId) params.set('categoryId', selectedCategoryId);
             const qs = params.toString();
-            const url = `/api/admin/analytics${qs ? ('?' + qs) : ''}`;
-            const data = await apiGet(url, token);
-            setAnalyticsData(data);
+            const baseQs = qs ? ('?' + qs) : '';
+            const overviewUrl = `/api/admin/analytics${baseQs}`;
+            const funnelUrl = `/api/admin/analytics/funnel-basic${baseQs}`;
+            const segmentsUrl = `/api/admin/analytics/customers/segments${baseQs}`;
+            const payUrl = `/api/admin/analytics/payment-metrics${baseQs}`;
+            const custSummaryUrl = `/api/admin/analytics/customers/summary${baseQs}`;
+            const catUrl = `/api/admin/analytics/categories${baseQs}`;
+            const geoUrl = `/api/admin/analytics/geo${baseQs}`;
+            const [overview, funnel, segments, pay, csum, cats, geo] = await Promise.all([
+                apiGet(overviewUrl, token).catch(() => null),
+                apiGet(funnelUrl, token).catch(() => null),
+                apiGet(segmentsUrl, token).catch(() => null),
+                apiGet(payUrl, token).catch(() => null),
+                apiGet(custSummaryUrl, token).catch(() => null),
+                apiGet(catUrl, token).catch(() => null),
+                apiGet(geoUrl, token).catch(() => null),
+            ]);
+            setAnalyticsData(overview);
+            setFunnelData(funnel);
+            setSegmentsData(segments);
+            setPaymentMetrics(pay);
+            setCustomersSummary(csum);
+            setCategoriesData(cats);
+            setGeoData(geo);
         } catch (e) {
             // Keep client-side fallback if server analytics fails
             console.warn('Analytics API failed, using client-side fallback:', e?.message || e);
@@ -123,7 +174,17 @@ export default function AdminDashboard() {
     React.useEffect(() => {
         loadAnalytics();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [range, startDate, endDate]);
+    }, [range, startDate, endDate, selectedCategoryId]);
+
+    // Load category list once for filter
+    React.useEffect(() => {
+        (async () => {
+            try {
+                const cats = await apiGet('/api/categories');
+                setCategories(Array.isArray(cats) ? cats : []);
+            } catch { /* ignore */ }
+        })();
+    }, []);
 
     // Persist Orders filters/sort in localStorage
     React.useEffect(() => {
@@ -195,6 +256,16 @@ export default function AdminDashboard() {
         return { totalOrders, totalRevenue, totalItems, mostSold, aov, byPayment, trend };
     }, [orders]);
 
+    const userAnalytics = React.useMemo(() => {
+        const list = Array.isArray(users) ? users : [];
+        const total = list.length;
+        const admins = list.filter(u => Boolean(u.isAdmin)).length;
+        const blocked = list.filter(u => Boolean(u.isBlocked)).length;
+        const now = Date.now();
+        const last7 = list.filter(u => u.createdAt && (new Date(u.createdAt)).getTime() > now - 7 * 24 * 60 * 60 * 1000).length;
+        return { total, admins, blocked, newLast7: last7 };
+    }, [users]);
+
     function downloadCSV(filename, rows) {
         const csv = rows.map(r => r.map(v => {
             const s = String(v ?? '');
@@ -235,7 +306,156 @@ export default function AdminDashboard() {
             URL.revokeObjectURL(url);
         } catch (e) {
             setError(e.message || 'Failed to download invoice');
+            showToast(e.message || 'Failed to download invoice', { type: 'error' });
         }
+    }
+
+    async function openRevenueDrilldown() {
+        setDrillLoading(true);
+        setDrillType('orders');
+        setDrillTitle('Top Orders (by subtotal)');
+        try {
+            const params = new URLSearchParams();
+            if (range === 'custom') {
+                if (startDate) params.set('startDate', startDate);
+                if (endDate) params.set('endDate', endDate);
+            } else {
+                // pass approximate range; analytics API handles exact ranges but orders supports dates too
+                // For quick UI, request last 90 days when not custom
+                const now = new Date();
+                const s = new Date();
+                if (range === '7d') s.setDate(now.getDate() - 6);
+                else if (range === '30d') s.setDate(now.getDate() - 29);
+                else s.setDate(now.getDate() - 89);
+                params.set('startDate', s.toISOString().slice(0, 10));
+            }
+            params.set('limit', '50');
+            params.set('sortBy', 'subtotal');
+            params.set('sortDir', 'desc');
+            const url = `/api/admin/orders?${params.toString()}`;
+            const data = await apiGet(url, token);
+            setDrillItems(Array.isArray(data) ? data : []);
+            setDrillOpen(true);
+        } catch (e) {
+            setError(e.message || 'Failed to load orders');
+        } finally { setDrillLoading(false); }
+    }
+
+    function openProductsDrilldown() {
+        setDrillType('products');
+        setDrillTitle('Top Products (by qty)');
+        setDrillItems(analyticsData?.mostSold || analytics.mostSold || []);
+        setDrillOpen(true);
+    }
+
+    async function openUserDrilldown(filter) {
+        setDrillLoading(true);
+        setDrillType('users');
+        setDrillPage(1);
+        setDrillLimit(50);
+        setDrillTotal(null);
+        setDrillServer(false);
+        const params = new URLSearchParams();
+        params.set('page', '1');
+        params.set('limit', String(50));
+        if (filter === 'admins') params.set('filter', 'admins');
+        else if (filter === 'blocked') params.set('filter', 'blocked');
+        else if (filter === 'new7') params.set('filter', 'new7');
+        try {
+            const url = `/api/admin/users?${params.toString()}`;
+            const data = await apiGet(url, token);
+            if (data && Array.isArray(data.users)) {
+                setDrillItems(data.users);
+                setDrillTotal(data.total);
+                setDrillPage(data.page || 1);
+                setDrillLimit(data.limit || 50);
+                setDrillServer(true);
+                setDrillTitle(filter === 'admins' ? 'Admins' : filter === 'blocked' ? 'Blocked Users' : filter === 'new7' ? 'New Users (7d)' : 'Users');
+            } else {
+                // fallback to client-side if server didn't return paginated shape
+                let title = 'Users';
+                let items = Array.isArray(users) ? users.slice() : [];
+                if (filter === 'admins') { title = 'Admins'; items = items.filter(u => u.isAdmin); }
+                else if (filter === 'blocked') { title = 'Blocked Users'; items = items.filter(u => u.isBlocked); }
+                else if (filter === 'new7') { title = 'New Users (7d)'; const now = Date.now(); items = items.filter(u => u.createdAt && (new Date(u.createdAt)).getTime() > now - 7 * 24 * 60 * 60 * 1000); }
+                setDrillItems(items);
+                setDrillTitle(title);
+            }
+            setDrillOpen(true);
+        } catch (e) {
+            setError(e.message || 'Failed to load users');
+        } finally { setDrillLoading(false); }
+    }
+
+    async function fetchDrillUsersPage(page) {
+        if (!drillServer) return;
+        setDrillLoading(true);
+        try {
+            const params = new URLSearchParams();
+            params.set('page', String(page));
+            params.set('limit', String(drillLimit || 50));
+            // We preserve the current drillTitle to infer filter; map title back to filter
+            if (drillTitle === 'Admins') params.set('filter', 'admins');
+            else if (drillTitle === 'Blocked Users') params.set('filter', 'blocked');
+            else if (drillTitle === 'New Users (7d)') params.set('filter', 'new7');
+            const url = `/api/admin/users?${params.toString()}`;
+            const data = await apiGet(url, token);
+            if (data && Array.isArray(data.users)) {
+                setDrillItems(data.users);
+                setDrillTotal(data.total);
+                setDrillPage(data.page || page);
+                setDrillLimit(data.limit || drillLimit);
+            }
+        } catch (e) {
+            setError(e.message || 'Failed to load users');
+        } finally { setDrillLoading(false); }
+    }
+
+    // perform the API calls to toggle admin/blocked
+    async function toggleUserAdmin(userId, makeAdmin) {
+        try {
+            const updated = await apiPut(`/api/admin/users/${userId}`, { isAdmin: !!makeAdmin }, token).catch(() => null);
+            if (updated && updated._id) {
+                setUsers(prev => prev.map(u => u._id === userId ? updated : u));
+                setDrillItems(prev => prev.map(u => u._id === userId ? updated : u));
+            } else {
+                setUsers(prev => prev.map(u => u._id === userId ? { ...u, isAdmin: !!makeAdmin } : u));
+                setDrillItems(prev => prev.map(u => u._id === userId ? { ...u, isAdmin: !!makeAdmin } : u));
+            }
+            showToast(makeAdmin ? 'User promoted to admin' : 'Admin privileges revoked', { type: 'success' });
+        } catch (e) { setError(e.message || 'Failed to update user role'); }
+    }
+
+    async function toggleUserBlocked(userId, block) {
+        try {
+            const updated = await apiPut(`/api/admin/users/${userId}`, { isBlocked: !!block }, token).catch(() => null);
+            if (updated && updated._id) {
+                setUsers(prev => prev.map(u => u._id === userId ? updated : u));
+                setDrillItems(prev => prev.map(u => u._id === userId ? updated : u));
+            } else {
+                setUsers(prev => prev.map(u => u._id === userId ? { ...u, isBlocked: !!block } : u));
+                setDrillItems(prev => prev.map(u => u._id === userId ? { ...u, isBlocked: !!block } : u));
+            }
+            showToast(block ? 'User blocked' : 'User unblocked', { type: 'success' });
+        } catch (e) { setError(e.message || 'Failed to update user status'); }
+    }
+
+    // confirmation modal state
+    const [confirmOpen, setConfirmOpen] = useState(false);
+    const [confirmTitle, setConfirmTitle] = useState('');
+    const [confirmMessage, setConfirmMessage] = useState('');
+    const [confirmAction, setConfirmAction] = useState(null);
+
+    function openConfirm({ title, message, action }) {
+        setConfirmTitle(title || 'Confirm');
+        setConfirmMessage(message || 'Are you sure?');
+        setConfirmAction(() => action);
+        setConfirmOpen(true);
+    }
+
+    function closeConfirm() {
+        setConfirmOpen(false);
+        setConfirmAction(null);
     }
 
     if (loading) return <div className="p-6">Loading auth...</div>;
@@ -253,16 +473,192 @@ export default function AdminDashboard() {
                     <button onClick={() => setTab('users')} className={`px-4 py-2 rounded-md text-sm md:text-base ${flip ? 'animate-rotateYoyo' : ''} transition shadow-sm ${tab === 'users' ? 'bg-blue-600 text-white' : 'text-white hover:bg-white/20'}`}>Users</button>
                     <button onClick={() => setTab('orders')} className={`px-4 py-2 rounded-md text-sm md:text-base ${flip ? 'animate-rotateYoyo' : ''} transition shadow-sm ${tab === 'orders' ? 'bg-blue-600 text-white' : 'text-white hover:bg-white/20'}`}>Orders</button>
                     <button onClick={() => setTab('analytics')} className={`px-4 py-2 rounded-md text-sm md:text-base ${flip ? 'animate-rotateYoyo' : ''} transition shadow-sm ${tab === 'analytics' ? 'bg-blue-600 text-white' : 'text-white hover:bg-white/20'}`}>Analytics</button>
+                    <button onClick={() => navigate('/admin/logs')} className={`px-4 py-2 rounded-md text-sm md:text-base ${flip ? 'animate-rotateYoyo' : ''} transition shadow-sm ${tab === 'logs' ? 'bg-blue-600 text-white' : 'text-white hover:bg-white/20'}`}>Logs</button>
                 </div>
             </div>
+
+            {/* Drilldown modal */}
+            {drillOpen && (
+                <div className="fixed inset-0 z-50 bg-black bg-opacity-40 flex items-start justify-center p-6">
+                    <div className="bg-white rounded-lg w-full max-w-4xl max-h-[80vh] overflow-auto p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-lg font-semibold">{drillTitle}</h3>
+                            <div className="flex gap-2">
+                                <button onClick={() => setDrillOpen(false)} className="px-3 py-1 border rounded">Close</button>
+                            </div>
+                        </div>
+                        {drillLoading ? <div>Loading...</div> : (
+                            <div>
+                                {drillType === 'users' && (
+                                    <div className="overflow-auto">
+                                        <table className="min-w-full text-sm">
+                                            <thead className="bg-gray-50 sticky top-0">
+                                                <tr>
+                                                    <th className="p-2 text-left">Name</th>
+                                                    <th className="p-2 text-left">Email</th>
+                                                    <th className="p-2 text-left">Role</th>
+                                                    <th className="p-2 text-left">Created</th>
+                                                    <th className="p-2 text-left">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(drillItems || []).map(u => (
+                                                    <tr key={u._id} className="odd:bg-white even:bg-gray-50">
+                                                        <td className="p-2">{u.name}</td>
+                                                        <td className="p-2">{u.email || '—'}</td>
+                                                        <td className="p-2">{u.isAdmin ? 'Admin' : 'User'}{u.isBlocked ? ' · Blocked' : ''}</td>
+                                                        <td className="p-2">{u.createdAt ? new Date(u.createdAt).toLocaleString() : '—'}</td>
+                                                        <td className="p-2">
+                                                            <div className="flex gap-2">
+                                                                <button onClick={() => window.open(`/admin/users/${u._id}`, '_blank')} className="px-2 py-1 border rounded text-xs">View</button>
+                                                                <button onClick={() => openConfirm({ title: u.isAdmin ? 'Revoke Admin' : 'Make Admin', message: u.isAdmin ? `Revoke admin privileges from ${u.name || u.email || 'this user'}?` : `Make ${u.name || u.email || 'this user'} an admin?`, action: () => toggleUserAdmin(u._id, !u.isAdmin) })} className="px-2 py-1 border rounded text-xs">{u.isAdmin ? 'Revoke Admin' : 'Make Admin'}</button>
+                                                                <button onClick={() => openConfirm({ title: u.isBlocked ? 'Unblock User' : 'Block User', message: u.isBlocked ? `Unblock ${u.name || u.email || 'this user'}?` : `Block ${u.name || u.email || 'this user'}? This will prevent them from logging in.`, action: () => toggleUserBlocked(u._id, !u.isBlocked) })} className="px-2 py-1 border rounded text-xs">{u.isBlocked ? 'Unblock' : 'Block'}</button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                        {drillServer && drillTotal != null && (
+                                            <div className="mt-3 flex items-center justify-between">
+                                                <div className="text-sm text-gray-600">Showing page {drillPage} • {drillTotal} total</div>
+                                                <div className="flex gap-2">
+                                                    <button disabled={drillPage <= 1 || drillLoading} onClick={() => fetchDrillUsersPage(Math.max(1, drillPage - 1))} className="px-3 py-1 border rounded">Prev</button>
+                                                    <button disabled={drillPage * drillLimit >= drillTotal || drillLoading} onClick={() => fetchDrillUsersPage(drillPage + 1)} className="px-3 py-1 border rounded">Next</button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {drillType === 'products' && (
+                                    <div className="space-y-2">
+                                        {(drillItems || []).map((p, idx) => (
+                                            <div key={idx} className="p-2 border rounded flex items-center justify-between">
+                                                <div>
+                                                    <div className="font-medium">{p.name}</div>
+                                                    <div className="text-sm text-gray-500">Qty: {p.qty} • Revenue: ₹{(p.revenue || 0).toFixed(2)}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {drillType === 'orders' && (
+                                    <div className="overflow-auto">
+                                        <table className="min-w-full text-sm">
+                                            <thead className="bg-gray-50 sticky top-0">
+                                                <tr>
+                                                    <th className="p-2 text-left">When</th>
+                                                    <th className="p-2 text-left">Order ID</th>
+                                                    <th className="p-2 text-left">Customer</th>
+                                                    <th className="p-2 text-left">Subtotal</th>
+                                                    <th className="p-2 text-left">Status</th>
+                                                    <th className="p-2 text-left">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {(drillItems || []).map(o => (
+                                                    <tr key={o._id} className="odd:bg-white even:bg-gray-50">
+                                                        <td className="p-2">{new Date(o.createdAt).toLocaleString()}</td>
+                                                        <td className="p-2">{String(o._id).slice(-8)}</td>
+                                                        <td className="p-2">{o.customer?.name || o.user?.name || o.customer?.phone || '—'}</td>
+                                                        <td className="p-2">₹{(o.subtotal || 0).toFixed(2)}</td>
+                                                        <td className="p-2">{o.status}</td>
+                                                        <td className="p-2">
+                                                            <div className="flex gap-2">
+                                                                <button onClick={() => window.open(`/admin/orders/${o._id}`, '_blank')} className="px-2 py-1 border rounded text-xs">View</button>
+                                                                <button onClick={() => handleDownloadInvoice(o._id)} className="px-2 py-1 border rounded text-xs">Invoice</button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
+            <ConfirmationModal
+                open={confirmOpen}
+                title={confirmTitle}
+                message={confirmMessage}
+                confirmLabel="Yes"
+                cancelLabel="No"
+                onConfirm={async () => {
+                    try {
+                        if (typeof confirmAction === 'function') await confirmAction();
+                    } catch (e) { console.warn('Confirm action failed', e); }
+                    closeConfirm();
+                }}
+                onCancel={() => closeConfirm()}
+            />
 
             {error && <div className="mb-4 text-red-600">{error}</div>}
 
             {tab === 'products' && <AdminProducts />}
 
+            {tab === 'analytics' && (
+                <div className="max-w-7xl mx-auto space-y-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        <div onClick={openRevenueDrilldown} className="p-4 bg-white rounded-lg shadow-sm cursor-pointer hover:shadow-md">
+                            <div className="text-sm text-gray-500">Total Revenue</div>
+                            <div className="text-2xl font-bold">₹{(analyticsData?.totalRevenue ?? analytics.totalRevenue ?? 0).toLocaleString()}</div>
+                            <div className="mt-2"><small className="text-xs text-gray-500">Last {range}</small></div>
+                        </div>
+                        <div onClick={() => { setDrillType('orders'); setDrillTitle('Recent Orders'); setDrillItems(orders || []); setDrillOpen(true); }} className="p-4 bg-white rounded-lg shadow-sm cursor-pointer hover:shadow-md">
+                            <div className="text-sm text-gray-500">Total Orders</div>
+                            <div className="text-2xl font-bold">{analyticsData?.totalOrders ?? analytics.totalOrders ?? 0}</div>
+                            <div className="mt-2"><small className="text-xs text-gray-500">Non-cancelled</small></div>
+                        </div>
+                        <div onClick={() => { setDrillType('orders'); setDrillTitle('High Value Orders'); setDrillItems((orders || []).slice().sort((a, b) => (b.subtotal || 0) - (a.subtotal || 0)).slice(0, 50)); setDrillOpen(true); }} className="p-4 bg-white rounded-lg shadow-sm cursor-pointer hover:shadow-md">
+                            <div className="text-sm text-gray-500">Average Order Value</div>
+                            <div className="text-2xl font-bold">₹{Math.round((analyticsData?.aov ?? analytics.aov ?? 0) * 100) / 100}</div>
+                            <div className="mt-2"><small className="text-xs text-gray-500">AOV</small></div>
+                        </div>
+                        <div onClick={openProductsDrilldown} className="p-4 bg-white rounded-lg shadow-sm flex items-center justify-between cursor-pointer hover:shadow-md">
+                            <div>
+                                <div className="text-sm text-gray-500">Conversion</div>
+                                <div className="text-2xl font-bold">{funnelData?.conversion ? (Number(funnelData.conversion.checkout_to_paid * 100).toFixed(1) + '%') : '—'}</div>
+                                <div className="mt-2"><small className="text-xs text-gray-500">Checkout → Paid</small></div>
+                            </div>
+                            <div className="ml-3">
+                                <div className="bg-gray-50 p-1 rounded">
+                                    <Sparkline series={analyticsData?.trend?.map(t => ({ revenue: t.revenue })) || analytics.trend?.map(t => t.revenue) || []} width={160} height={40} color="#2563EB" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
             {tab === 'users' && (
                 <div className="max-w-7xl mx-auto">
                     <h2 className="text-xl font-semibold mb-4">Users ({users.length})</h2>
+
+                    {/* Compact user analytics panel */}
+                    <div className="mb-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                        <div onClick={() => openUserDrilldown('all')} className="p-3 bg-white rounded shadow-sm cursor-pointer hover:shadow-md">
+                            <div className="text-xs text-gray-500">Total Users</div>
+                            <div className="text-lg font-semibold">{userAnalytics.total}</div>
+                        </div>
+                        <div onClick={() => openUserDrilldown('admins')} className="p-3 bg-white rounded shadow-sm cursor-pointer hover:shadow-md">
+                            <div className="text-xs text-gray-500">Admins</div>
+                            <div className="text-lg font-semibold">{userAnalytics.admins}</div>
+                        </div>
+                        <div onClick={() => openUserDrilldown('blocked')} className="p-3 bg-white rounded shadow-sm cursor-pointer hover:shadow-md">
+                            <div className="text-xs text-gray-500">Blocked</div>
+                            <div className="text-lg font-semibold">{userAnalytics.blocked}</div>
+                        </div>
+                        <div onClick={() => openUserDrilldown('new7')} className="p-3 bg-white rounded shadow-sm cursor-pointer hover:shadow-md">
+                            <div className="text-xs text-gray-500">New (7d)</div>
+                            <div className="text-lg font-semibold">{userAnalytics.newLast7}</div>
+                        </div>
+                    </div>
 
                     {/* Add User Form */}
                     <div className="mb-6 bg-white border rounded-lg p-5">
@@ -300,66 +696,77 @@ export default function AdminDashboard() {
                             </button>
                         </form>
                     </div>
-
+                    <div className="mt-4 text-sm text-gray-400">
+                        Analytics are shown under the <button onClick={() => setTab('analytics')} className="underline text-blue-600">Analytics</button> tab.
+                    </div>
                     <h3 className="font-bold text-lg mb-3">All Users</h3>
                     <div className="overflow-auto rounded-lg border border-white/20 bg-white/5">
-                        <table className="min-w-full text-sm">
-                            <thead className="sticky top-0 bg-white/80 backdrop-blur text-gray-700">
-                                <tr>
-                                    <th className="text-left font-semibold px-4 py-2">User</th>
-                                    <th className="text-left font-semibold px-4 py-2 hidden md:table-cell">Email</th>
-                                    <th className="text-left font-semibold px-4 py-2 hidden md:table-cell">Role</th>
-                                    <th className="text-right font-semibold px-4 py-2">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {users.map(u => (
-                                    <tr key={u._id} className="odd:bg-white/70 even:bg-white/60">
-                                        <td className="px-4 py-2">
-                                            <div className="flex items-center gap-2">
-                                                <img src={`https://api.dicebear.com/5.x/initials/svg?rotate=90&seed=${u.name}`} alt={`${u.name}`} className='rounded-full h-8 w-8' />
-                                                <div>
-                                                    <div className="font-semibold text-gray-900">{u.name}</div>
-                                                    <div className="text-xs text-gray-600 md:hidden">{u.email}</div>
+                        {loadingData ? (
+                            <div className="p-4">
+                                <Skeleton rows={6} />
+                            </div>
+                        ) : (
+                            <table className="min-w-full text-sm">
+                                <thead className="sticky top-0 bg-white/80 backdrop-blur text-gray-700">
+                                    <tr>
+                                        <th className="text-left font-semibold px-4 py-2">User</th>
+                                        <th className="text-left font-semibold px-4 py-2 hidden md:table-cell">Email</th>
+                                        <th className="text-left font-semibold px-4 py-2 hidden md:table-cell">Role</th>
+                                        <th className="text-right font-semibold px-4 py-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map(u => (
+                                        <tr key={u._id} className="odd:bg-white/70 even:bg-white/60">
+                                            <td className="px-4 py-2">
+                                                <div className="flex items-center gap-2">
+                                                    <img src={`https://api.dicebear.com/5.x/initials/svg?rotate=90&seed=${u.name}`} alt={`${u.name}`} className='rounded-full h-8 w-8' />
+                                                    <div>
+                                                        <div className="font-semibold text-gray-900">{u.name}</div>
+                                                        <div className="text-xs text-gray-600 md:hidden">{u.email}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-4 py-2 hidden md:table-cell text-gray-800">{u.email}</td>
-                                        <td className="px-4 py-2 hidden md:table-cell">
-                                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${u.isAdmin ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{u.isAdmin ? 'admin' : 'user'}</span>
-                                            {u.isBlocked && <span className="ml-2 px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">blocked</span>}
-                                        </td>
-                                        <td className="px-4 py-2 text-right">
-                                            <div className="inline-flex gap-2">
-                                                {u.isAdmin && (
+                                            </td>
+                                            <td className="px-4 py-2 hidden md:table-cell text-gray-800">{u.email}</td>
+                                            <td className="px-4 py-2 hidden md:table-cell">
+                                                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${u.isAdmin ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>{u.isAdmin ? 'admin' : 'user'}</span>
+                                                {u.isBlocked && <span className="ml-2 px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-700">blocked</span>}
+                                            </td>
+                                            <td className="px-4 py-2 text-right">
+                                                <div className="inline-flex gap-2">
+                                                    {u.isAdmin && (
+                                                        <button onClick={async () => {
+                                                            const payload = { isAdmin: !u.isAdmin };
+                                                            try {
+                                                                const res = await apiPut(`/api/admin/users/${u._id}`, payload, token);
+                                                                setUsers(prev => prev.map(x => x._id === res._id ? res : x));
+                                                                showToast('Admin privileges removed', { type: 'success' });
+                                                            } catch (e) { setError(e.message || 'Failed'); }
+                                                        }} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-red-600">Remove Admin</button>
+                                                    )}
                                                     <button onClick={async () => {
-                                                        const payload = { isAdmin: !u.isAdmin };
+                                                        const payload = { isBlocked: !u.isBlocked };
                                                         try {
                                                             const res = await apiPut(`/api/admin/users/${u._id}`, payload, token);
                                                             setUsers(prev => prev.map(x => x._id === res._id ? res : x));
+                                                            showToast(res?.isBlocked ? 'User blocked' : 'User unblocked', { type: 'success' });
                                                         } catch (e) { setError(e.message || 'Failed'); }
-                                                    }} className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-red-600">Remove Admin</button>
-                                                )}
-                                                <button onClick={async () => {
-                                                    const payload = { isBlocked: !u.isBlocked };
-                                                    try {
-                                                        const res = await apiPut(`/api/admin/users/${u._id}`, payload, token);
-                                                        setUsers(prev => prev.map(x => x._id === res._id ? res : x));
-                                                    } catch (e) { setError(e.message || 'Failed'); }
-                                                }} className={`px-3 py-1 rounded ${u.isBlocked ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>{u.isBlocked ? 'Unblock' : 'Block'}</button>
-                                                <button onClick={async () => {
-                                                    if (!window.confirm('Are you sure you want to delete this user?')) return;
-                                                    try {
-                                                        await apiDelete(`/api/admin/users/${u._id}`, token);
-                                                        setUsers(prev => prev.filter(x => x._id !== u._id));
-                                                    } catch (e) { setError(e.message || 'Failed'); }
-                                                }} className="px-3 py-1 bg-gray-300 text-gray-800 rounded">Delete</button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                                    }} className={`px-3 py-1 rounded ${u.isBlocked ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>{u.isBlocked ? 'Unblock' : 'Block'}</button>
+                                                    <button onClick={async () => {
+                                                        if (!window.confirm('Are you sure you want to delete this user?')) return;
+                                                        try {
+                                                            await apiDelete(`/api/admin/users/${u._id}`, token);
+                                                            setUsers(prev => prev.filter(x => x._id !== u._id));
+                                                            showToast('User deleted', { type: 'success' });
+                                                        } catch (e) { setError(e.message || 'Failed'); }
+                                                    }} className="px-3 py-1 bg-gray-300 text-gray-800 rounded">Delete</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 </div>
             )}
@@ -397,157 +804,164 @@ export default function AdminDashboard() {
                         </div>
                     </div>
                     <div className="overflow-auto rounded-lg border border-white/20 bg-white/5">
-                        <table className="min-w-full text-sm">
-                            <thead className="sticky top-0 bg-white/80 backdrop-blur text-gray-700">
-                                <tr>
-                                    <th className="text-left font-semibold px-4 py-2">Order</th>
-                                    <th className="text-left font-semibold px-4 py-2 hidden md:table-cell">Customer</th>
-                                    <th className="text-left font-semibold px-4 py-2 hidden lg:table-cell">Email</th>
-                                    <th className="text-left font-semibold px-4 py-2">Total</th>
-                                    <th className="text-left font-semibold px-4 py-2 hidden md:table-cell">Paid</th>
-                                    <th className="text-left font-semibold px-4 py-2 hidden lg:table-cell">Date</th>
-                                    <th className="text-right font-semibold px-4 py-2">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(() => {
-                                    const list = Array.isArray(orders) ? orders.slice() : [];
-                                    const filtered = list.filter(o => {
-                                        if (orderStatusFilter !== 'all' && (o.status || 'unknown') !== orderStatusFilter) return false;
-                                        if (orderPaidFilter !== 'all') {
-                                            const paidBool = !!o.paid;
-                                            if (orderPaidFilter === 'paid' && !paidBool) return false;
-                                            if (orderPaidFilter === 'unpaid' && paidBool) return false;
-                                        }
-                                        return true;
-                                    });
-                                    filtered.sort((a, b) => {
-                                        if (orderSortBy === 'total') {
-                                            const av = Number(a.subtotal || 0), bv = Number(b.subtotal || 0);
-                                            return orderSortDir === 'asc' ? av - bv : bv - av;
-                                        } else {
-                                            const ad = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                                            const bd = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                                            return orderSortDir === 'asc' ? ad - bd : bd - ad;
-                                        }
-                                    });
-                                    return filtered;
-                                })().map(o => (
-                                    <tr key={o._id} className="odd:bg-white/70 even:bg-white/60 align-top">
-                                        <td className="px-4 py-2 text-gray-900">
-                                            <div className="font-semibold truncate max-w-[160px]">#{o._id}</div>
-                                            <div className="text-xs text-gray-600 md:hidden">{new Date(o.createdAt).toLocaleDateString()}</div>
-                                        </td>
-                                        <td className="px-4 py-2 text-gray-800">{o.customer?.name || '—'}</td>
-                                        <td className="px-4 py-2 hidden lg:table-cell text-gray-700">{o.user?.email || o.customer?.email || '—'}</td>
-                                        <td className="px-4 py-2 text-gray-900">₹ {Number(o.subtotal || 0).toLocaleString('en-IN')}{o.refunded ? <span className="ml-1 text-xs text-red-600">(−₹{Number(o.refundAmount || 0).toLocaleString('en-IN')})</span> : null}</td>
-                                        <td className="px-4 py-2 hidden md:table-cell">
-                                            {typeof o.paid === 'boolean' && (
-                                                <span className={`px-2 py-0.5 rounded text-xs font-semibold ${o.paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{o.paid ? 'Paid' : 'Pending'}</span>
-                                            )}
-                                        </td>
-                                        <td className="px-4 py-2 hidden lg:table-cell text-gray-700">{o.createdAt ? new Date(o.createdAt).toLocaleString() : '—'}</td>
-                                        <td className="px-4 py-2 text-right whitespace-nowrap">
-                                            <div className={`${viewOpen===true?"flex flex-col items-center justify-start mx-0":"flex items-center justify-end"}`}>
-                                                <div className='flex gap-2 justify-end items-center'>
-                                                    <select defaultValue={o.status} onChange={async (e) => {
-                                                        try {
-                                                            const updated = await apiPut(`/api/admin/orders/${o._id}`, { status: e.target.value }, token);
-                                                            setOrders(prev => prev.map(x => x._id === updated._id ? updated : x));
-                                                        } catch (e) { setError(e.message || 'Failed'); }
-                                                    }} className="border p-1.5 rounded bg-white/80 text-sm">
-                                                        <option value="pending">pending</option>
-                                                        <option value="confirmed">confirmed</option>
-                                                        <option value="shipped">shipped</option>
-                                                        <option value="delivered">delivered</option>
-                                                        <option value="cancelled">cancelled</option>
-                                                    </select>
-                                                    {(() => {
-                                                        const eligible = o.status !== 'cancelled' && ((o.gateway && o.gateway !== 'cod') || (o.paymentMethod && o.paymentMethod !== 'cod'));
-                                                        return (
-                                                            <button
-                                                                onClick={() => handleDownloadInvoice(o._id)}
-                                                                disabled={!eligible}
-                                                                className={`px-3 py-1 rounded text-sm ${eligible ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 cursor-not-allowed'}`}
-                                                            >Invoice</button>
-                                                        );
-                                                    })()}
-                                                </div>
-                                                <details className="ml-1">
-                                                    <summary className="px-3 py-1 rounded border text-sm bg-white cursor-pointer select-none" onClick={()=>viewHandler()}>View</summary>
-                                                    <div className="mt-2 bg-white border rounded p-4 shadow-sm text-left">
-                                                        <div className="font-bold text-lg mb-2">Order Details</div>
-                                                        <div className="mb-2"><span className="font-semibold">Order ID:</span> {o._id}</div>
-                                                        <div className="mb-2"><span className="font-semibold">User:</span> {o.customer?.name}</div>
-                                                        <div className="mb-2"><span className="font-semibold">Email:</span> {o.customer?.email}</div>
-                                                        <div className="mb-2"><span className="font-semibold">Status:</span> <span className="capitalize">{o.status}</span></div>
-                                                        <div className="mb-2">
-                                                            <span className="font-semibold">Total:</span> ₹ {Number(o.subtotal || 0).toLocaleString('en-IN')}
-                                                            {typeof o.paid === 'boolean' && (
-                                                                <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${o.paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{o.paid ? 'Paid' : 'Pending'}</span>
-                                                            )}
-                                                        </div>
-                                                        {o.customer && (
+                        {loadingData ? (
+                            <div className="p-4">
+                                <Skeleton rows={6} />
+                            </div>
+                        ) : (
+                            <table className="min-w-full text-sm">
+                                <thead className="sticky top-0 bg-white/80 backdrop-blur text-gray-700">
+                                    <tr>
+                                        <th className="text-left font-semibold px-4 py-2">Order</th>
+                                        <th className="text-left font-semibold px-4 py-2 hidden md:table-cell">Customer</th>
+                                        <th className="text-left font-semibold px-4 py-2 hidden lg:table-cell">Email</th>
+                                        <th className="text-left font-semibold px-4 py-2">Total</th>
+                                        <th className="text-left font-semibold px-4 py-2 hidden md:table-cell">Paid</th>
+                                        <th className="text-left font-semibold px-4 py-2 hidden lg:table-cell">Date</th>
+                                        <th className="text-right font-semibold px-4 py-2">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {(() => {
+                                        const list = Array.isArray(orders) ? orders.slice() : [];
+                                        const filtered = list.filter(o => {
+                                            if (orderStatusFilter !== 'all' && (o.status || 'unknown') !== orderStatusFilter) return false;
+                                            if (orderPaidFilter !== 'all') {
+                                                const paidBool = !!o.paid;
+                                                if (orderPaidFilter === 'paid' && !paidBool) return false;
+                                                if (orderPaidFilter === 'unpaid' && paidBool) return false;
+                                            }
+                                            return true;
+                                        });
+                                        filtered.sort((a, b) => {
+                                            if (orderSortBy === 'total') {
+                                                const av = Number(a.subtotal || 0), bv = Number(b.subtotal || 0);
+                                                return orderSortDir === 'asc' ? av - bv : bv - av;
+                                            } else {
+                                                const ad = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                                                const bd = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                                                return orderSortDir === 'asc' ? ad - bd : bd - ad;
+                                            }
+                                        });
+                                        return filtered;
+                                    })().map(o => (
+                                        <tr key={o._id} className="odd:bg-white/70 even:bg-white/60 align-top">
+                                            <td className="px-4 py-2 text-gray-900">
+                                                <div className="font-semibold truncate max-w-[160px]">#{o._id}</div>
+                                                <div className="text-xs text-gray-600 md:hidden">{new Date(o.createdAt).toLocaleDateString()}</div>
+                                            </td>
+                                            <td className="px-4 py-2 text-gray-800">{o.customer?.name || '—'}</td>
+                                            <td className="px-4 py-2 hidden lg:table-cell text-gray-700">{o.user?.email || o.customer?.email || '—'}</td>
+                                            <td className="px-4 py-2 text-gray-900">₹ {Number(o.subtotal || 0).toLocaleString('en-IN')}{o.refunded ? <span className="ml-1 text-xs text-red-600">(−₹{Number(o.refundAmount || 0).toLocaleString('en-IN')})</span> : null}</td>
+                                            <td className="px-4 py-2 hidden md:table-cell">
+                                                {typeof o.paid === 'boolean' && (
+                                                    <span className={`px-2 py-0.5 rounded text-xs font-semibold ${o.paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{o.paid ? 'Paid' : 'Pending'}</span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-2 hidden lg:table-cell text-gray-700">{o.createdAt ? new Date(o.createdAt).toLocaleString() : '—'}</td>
+                                            <td className="px-4 py-2 text-right whitespace-nowrap">
+                                                <div className={`${viewOpen === true ? "flex flex-col items-center justify-start mx-0" : "flex items-center justify-end"}`}>
+                                                    <div className='flex gap-2 justify-end items-center'>
+                                                        <select defaultValue={o.status} onChange={async (e) => {
+                                                            try {
+                                                                const updated = await apiPut(`/api/admin/orders/${o._id}`, { status: e.target.value }, token);
+                                                                setOrders(prev => prev.map(x => x._id === updated._id ? updated : x));
+                                                                showToast('Order status updated', { type: 'success' });
+                                                            } catch (e) { setError(e.message || 'Failed'); showToast(e.message || 'Failed to update order', { type: 'error' }); }
+                                                        }} className="border p-1.5 rounded bg-white/80 text-sm">
+                                                            <option value="pending">pending</option>
+                                                            <option value="confirmed">confirmed</option>
+                                                            <option value="shipped">shipped</option>
+                                                            <option value="delivered">delivered</option>
+                                                            <option value="cancelled">cancelled</option>
+                                                        </select>
+                                                        {(() => {
+                                                            const eligible = o.status !== 'cancelled' && ((o.gateway && o.gateway !== 'cod') || (o.paymentMethod && o.paymentMethod !== 'cod'));
+                                                            return (
+                                                                <button
+                                                                    onClick={() => handleDownloadInvoice(o._id)}
+                                                                    disabled={!eligible}
+                                                                    className={`px-3 py-1 rounded text-sm ${eligible ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-300 text-gray-700 cursor-not-allowed'}`}
+                                                                >Invoice</button>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                    <details className="ml-1">
+                                                        <summary className="px-3 py-1 rounded border text-sm bg-white cursor-pointer select-none" onClick={() => viewHandler()}>View</summary>
+                                                        <div className="mt-2 bg-white border rounded p-4 shadow-sm text-left">
+                                                            <div className="font-bold text-lg mb-2">Order Details</div>
+                                                            <div className="mb-2"><span className="font-semibold">Order ID:</span> {o._id}</div>
+                                                            <div className="mb-2"><span className="font-semibold">User:</span> {o.customer?.name}</div>
+                                                            <div className="mb-2"><span className="font-semibold">Email:</span> {o.customer?.email}</div>
+                                                            <div className="mb-2"><span className="font-semibold">Status:</span> <span className="capitalize">{o.status}</span></div>
                                                             <div className="mb-2">
-                                                                <span className="font-semibold">Delivery Address:</span>
-                                                                <div className="ml-2 inline-block">
-                                                                    <div>
-                                                                        {o.customer.name && <span>{o.customer.name}, </span>}
-                                                                        {o.customer.phone && <span>{o.customer.phone}, </span>}
-                                                                        {o.customer.address && <span>{o.customer.address}, </span>}
-                                                                        {o.customer.city && <span>{o.customer.city}, </span>}
-                                                                        {o.customer.pincode && <span>{o.customer.pincode}</span>}
+                                                                <span className="font-semibold">Total:</span> ₹ {Number(o.subtotal || 0).toLocaleString('en-IN')}
+                                                                {typeof o.paid === 'boolean' && (
+                                                                    <span className={`ml-2 px-2 py-0.5 rounded text-xs font-semibold ${o.paid ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>{o.paid ? 'Paid' : 'Pending'}</span>
+                                                                )}
+                                                            </div>
+                                                            {o.customer && (
+                                                                <div className="mb-2">
+                                                                    <span className="font-semibold">Delivery Address:</span>
+                                                                    <div className="ml-2 inline-block">
+                                                                        <div>
+                                                                            {o.customer.name && <span>{o.customer.name}, </span>}
+                                                                            {o.customer.phone && <span>{o.customer.phone}, </span>}
+                                                                            {o.customer.address && <span>{o.customer.address}, </span>}
+                                                                            {o.customer.city && <span>{o.customer.city}, </span>}
+                                                                            {o.customer.pincode && <span>{o.customer.pincode}</span>}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
-                                                        {o.paymentMethod && (
-                                                            <div className="mb-2">
-                                                                <span className="font-semibold">Payment Method:</span>
-                                                                <span className="ml-2 px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 capitalize">
-                                                                    {o.paymentMethod === 'upi' && '📱 UPI'}
-                                                                    {o.paymentMethod === 'card' && '💳 Card'}
-                                                                    {o.paymentMethod === 'netbanking' && '🏦 Net Banking'}
-                                                                    {o.paymentMethod === 'cod' && '📦 Cash on Delivery'}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                        {o.createdAt && (
-                                                            <div className="mb-2"><span className="font-semibold">Order Date:</span> {new Date(o.createdAt).toLocaleString()}</div>
-                                                        )}
-                                                        {o.items && o.items.length > 0 && (
-                                                            <div className="mb-2">
-                                                                <span className="font-semibold block mb-2">Products:</span>
-                                                                <div className="space-y-3">
-                                                                    {o.items.map((p, idx) => (
-                                                                        <div key={idx} className="border rounded p-3 bg-gray-50">
-                                                                            <div className="flex gap-3">
-                                                                                {p.product?.images?.[0] && (
-                                                                                    <img src={p.product.images[0]} alt={p.product.title} className="w-16 h-16 object-cover rounded" onError={(e) => e.target.src = '/images/placeholder.svg'} />
-                                                                                )}
-                                                                                <div className="flex-1">
-                                                                                    <div className="font-semibold">{p.product?.title || p.title}</div>
-                                                                                    <div className="text-sm text-gray-600">Price: ₹{Number(p.price || 0).toLocaleString('en-IN')}</div>
-                                                                                    <div className="text-sm text-gray-600">Quantity: {p.quantity}</div>
-                                                                                    <div className="text-sm font-semibold text-blue-600">Total: ₹{Number((p.price || 0) * p.quantity).toLocaleString('en-IN')}</div>
+                                                            )}
+                                                            {o.paymentMethod && (
+                                                                <div className="mb-2">
+                                                                    <span className="font-semibold">Payment Method:</span>
+                                                                    <span className="ml-2 px-2 py-1 rounded text-xs font-semibold bg-blue-100 text-blue-700 capitalize">
+                                                                        {o.paymentMethod === 'upi' && '📱 UPI'}
+                                                                        {o.paymentMethod === 'card' && '💳 Card'}
+                                                                        {o.paymentMethod === 'netbanking' && '🏦 Net Banking'}
+                                                                        {o.paymentMethod === 'cod' && '📦 Cash on Delivery'}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            {o.createdAt && (
+                                                                <div className="mb-2"><span className="font-semibold">Order Date:</span> {new Date(o.createdAt).toLocaleString()}</div>
+                                                            )}
+                                                            {o.items && o.items.length > 0 && (
+                                                                <div className="mb-2">
+                                                                    <span className="font-semibold block mb-2">Products:</span>
+                                                                    <div className="space-y-3">
+                                                                        {o.items.map((p, idx) => (
+                                                                            <div key={idx} className="border rounded p-3 bg-gray-50">
+                                                                                <div className="flex gap-3">
+                                                                                    {p.product?.images?.[0] && (
+                                                                                        <img src={p.product.images[0]} alt={p.product.title} className="w-16 h-16 object-cover rounded" onError={(e) => e.target.src = '/images/placeholder.svg'} />
+                                                                                    )}
+                                                                                    <div className="flex-1">
+                                                                                        <div className="font-semibold">{p.product?.title || p.title}</div>
+                                                                                        <div className="text-sm text-gray-600">Price: ₹{Number(p.price || 0).toLocaleString('en-IN')}</div>
+                                                                                        <div className="text-sm text-gray-600">Quantity: {p.quantity}</div>
+                                                                                        <div className="text-sm font-semibold text-blue-600">Total: ₹{Number((p.price || 0) * p.quantity).toLocaleString('en-IN')}</div>
+                                                                                    </div>
                                                                                 </div>
                                                                             </div>
-                                                                        </div>
-                                                                    ))}
+                                                                        ))}
+                                                                    </div>
                                                                 </div>
-                                                            </div>
-                                                        )}
-                                                        {o.notes && <div className="mb-2"><span className="font-semibold">Notes:</span> {o.notes}</div>}
-                                                        {o.trackingId && <div className="mb-2"><span className="font-semibold">Tracking ID:</span> {o.trackingId}</div>}
-                                                        <div className="text-xs text-gray-400 mt-2">Created: {o.createdAt ? new Date(o.createdAt).toLocaleString() : 'N/A'}</div>
-                                                    </div>
-                                                </details>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                                                            )}
+                                                            {o.notes && <div className="mb-2"><span className="font-semibold">Notes:</span> {o.notes}</div>}
+                                                            {o.trackingId && <div className="mb-2"><span className="font-semibold">Tracking ID:</span> {o.trackingId}</div>}
+                                                            <div className="text-xs text-gray-400 mt-2">Created: {o.createdAt ? new Date(o.createdAt).toLocaleString() : 'N/A'}</div>
+                                                        </div>
+                                                    </details>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )}
                     </div>
                 </div>
             )}
@@ -571,6 +985,13 @@ export default function AdminDashboard() {
                                 <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="border p-2 rounded bg-white/80" />
                             </>
                         )}
+                        <label className="text-sm text-gray-200 ml-3">Category:</label>
+                        <select value={selectedCategoryId} onChange={(e) => setSelectedCategoryId(e.target.value)} className="border p-2 rounded bg-white/80 min-w-[200px]">
+                            <option value="">All</option>
+                            {categories.map(c => (
+                                <option key={c._id} value={c._id}>{c.name || c.slug || c._id}</option>
+                            ))}
+                        </select>
                     </div>
                     {(analyticsLoading && !analyticsData) && (<div className="mb-3 text-sm text-gray-200">Loading analytics...</div>)}
                     {(!analyticsLoading && !analyticsData && (!orders || orders.length === 0)) && (<div className="mb-3 text-sm text-gray-200">No analytics data available</div>)}
@@ -739,7 +1160,7 @@ export default function AdminDashboard() {
                                         </div>
                                     </div>
                                 </div>
-{/* 
+
                                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {(() => {
                                         const list = Array.isArray(orders) ? orders : [];
@@ -1144,7 +1565,7 @@ export default function AdminDashboard() {
                                             </div>
                                         );
                                     })()}
-                                </div> */}
+                                </div>
                             </>
                         );
                     })()}

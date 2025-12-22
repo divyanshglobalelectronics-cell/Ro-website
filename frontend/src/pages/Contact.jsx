@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { apiPost } from "../api/client";
 
@@ -95,9 +95,9 @@ export default function ContactUs() {
 
           <div className="space-y-7">
             {[
-              { icon: "📞", title: "Phone", text: "+91 9876543210" },
-              { icon: "✉", title: "Email", text: "support@divyanshglobalro.com" },
-              { icon: "📍", title: "Location", text: "Noida, Uttar Pradesh, India" },
+              { icon: "📞", title: "Phone", text: "+91 8948858489" },
+              { icon: "✉", title: "Email", text: "divyanshgloabalro@gmail.com" },
+              { icon: "📍", title: "Location", text: "Gaur city center,Noida, Uttar Pradesh, India" },
             ].map((item, i) => (
               <div
                 key={i}
@@ -116,7 +116,7 @@ export default function ContactUs() {
 
           <div className="pt-4 text-sm space-y-1 text-white/80">
             <p>⏰ Service Hours: 9:00 AM – 8:00 PM (All days)</p>
-            <p>📦 Coverage: Noida, Greater Noida, Ghaziabad & nearby regions</p>
+            <p>📦 Coverage:Gaur city center, Noida, Greater Noida, Ghaziabad & nearby regions</p>
           </div>
         </div>
 

@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const User = require('../models/User');
+const AuditLog = require('../models/AuditLog');
 const authMiddleware = require('../middleware/auth');
 const rateLimit = require('express-rate-limit');
 
@@ -44,6 +45,22 @@ router.post('/signup', async (req, res) => {
     if (existing) return res.status(409).json({ error: 'Email already in use' });
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.create({ name, email, passwordHash });
+    // audit log: user registered
+    try {
+      await AuditLog.create({
+        user: user._id,
+        userEmail: user.email,
+        userName: user.name,
+        action: 'user_registered',
+        resourceType: 'user',
+        resourceId: String(user._id),
+        details: { email: user.email, name: user.name },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (e) {
+      console.warn('[AUDIT] Failed to write user_registered log:', e && e.message);
+    }
     const token = signToken(user);
     res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email, isAdmin: Boolean(user.isAdmin) } });
   } catch (e) {
@@ -62,11 +79,63 @@ router.post('/login', async (req, res) => {
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/i;
     if (!emailRe.test(email)) return res.status(400).json({ error: 'Invalid email' });
     const user = await User.findOne({ email });
-    if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!user) {
+      // audit log: login failed - user not found
+      try {
+        await AuditLog.create({
+          user: undefined,
+          userEmail: email,
+          userName: '',
+          action: 'login_failed',
+          resourceType: 'auth',
+          resourceId: '',
+          details: { reason: 'user_not_found', email },
+          ip: req.ip,
+          userAgent: req.get('User-Agent') || '',
+        });
+      } catch (e) {
+        console.warn('[AUDIT] Failed to write login_failed log (user_not_found):', e && e.message);
+      }
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
     if(user.isBlocked) return res.status(403).json({ error: 'Your account has been blocked. Please contact support.' });
     const ok = await bcrypt.compare(password, user.passwordHash);
-    if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!ok) {
+      // audit log: login failed - bad password
+      try {
+        await AuditLog.create({
+          user: user._id,
+          userEmail: user.email,
+          userName: user.name,
+          action: 'login_failed',
+          resourceType: 'auth',
+          resourceId: String(user._id),
+          details: { reason: 'bad_password', email: user.email },
+          ip: req.ip,
+          userAgent: req.get('User-Agent') || '',
+        });
+      } catch (e) {
+        console.warn('[AUDIT] Failed to write login_failed log (bad_password):', e && e.message);
+      }
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
     const token = signToken(user);
+    // audit log: login success
+    try {
+      await AuditLog.create({
+        user: user._id,
+        userEmail: user.email,
+        userName: user.name,
+        action: 'login_success',
+        resourceType: 'auth',
+        resourceId: String(user._id),
+        details: { email: user.email },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (e) {
+      console.warn('[AUDIT] Failed to write login_success log:', e && e.message);
+    }
     res.json({ token, user: { id: user._id, name: user.name, email: user.email, isAdmin: Boolean(user.isAdmin) } });
   } catch (e) {
     console.error(e);
@@ -147,6 +216,22 @@ router.delete('/me', authMiddleware, async (req, res) => {
     const u = await User.findById(userId);
     if (!u) return res.status(404).json({ error: 'User not found' });
     await User.findByIdAndDelete(userId);
+    // audit log: user deleted their account
+    try {
+      await AuditLog.create({
+        user: userId,
+        userEmail: u.email,
+        userName: u.name,
+        action: 'delete_account',
+        resourceType: 'user',
+        resourceId: String(userId),
+        details: { email: u.email, name: u.name },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (e) {
+      console.warn('[AUDIT] Failed to write delete_account log:', e && e.message);
+    }
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);
@@ -168,6 +253,22 @@ router.post('/forgot', forgotLimiter, async (req, res) => {
     user.resetToken = token;
     user.resetExpires = new Date(Date.now() + 1000 * 60 * 30); // 30 minutes
     await user.save();
+    // audit log: password reset requested
+    try {
+      await AuditLog.create({
+        user: user._id,
+        userEmail: user.email,
+        userName: user.name,
+        action: 'password_reset_requested',
+        resourceType: 'auth',
+        resourceId: String(user._id),
+        details: { email: user.email, expiresAt: user.resetExpires },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (e) {
+      console.warn('[AUDIT] Failed to write password_reset_requested log:', e && e.message);
+    }
     // Default frontend URL should match local frontend dev server (3000)
     const baseUrl = process.env.APP_BASE_URL || 'http://localhost:3000';
     const resetUrl = `${baseUrl}/reset-password?token=${encodeURIComponent(token)}`;
@@ -209,6 +310,22 @@ router.post('/reset', async (req, res) => {
     user.resetToken = null;
     user.resetExpires = null;
     await user.save();
+    // audit log: password reset completed
+    try {
+      await AuditLog.create({
+        user: user._id,
+        userEmail: user.email,
+        userName: user.name,
+        action: 'password_reset_completed',
+        resourceType: 'auth',
+        resourceId: String(user._id),
+        details: { email: user.email },
+        ip: req.ip,
+        userAgent: req.get('User-Agent') || '',
+      });
+    } catch (e) {
+      console.warn('[AUDIT] Failed to write password_reset_completed log:', e && e.message);
+    }
     return res.json({ ok: true });
   } catch (e) {
     console.error(e);

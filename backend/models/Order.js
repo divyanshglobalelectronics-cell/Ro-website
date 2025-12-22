@@ -25,7 +25,7 @@ const OrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+      enum: ['payment_initiated', 'pending', 'confirmed', 'shipped', 'delivered', 'cancelled'],
       default: 'pending',
     },
     paymentMethod: { type: String, enum: ['upi', 'card', 'netbanking', 'cod'], default: 'cod' },
