@@ -98,7 +98,7 @@ router.post('/login', async (req, res) => {
       }
       return res.status(401).json({ error: 'Invalid credentials' });
     }
-    if(user.isBlocked) return res.status(403).json({ error: 'Your account has been blocked. Please contact support.' });
+    if (user.isBlocked) return res.status(403).json({ error: 'Your account has been blocked. Please contact support.' });
     const ok = await bcrypt.compare(password, user.passwordHash);
     if (!ok) {
       // audit log: login failed - bad password

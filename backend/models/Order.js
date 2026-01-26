@@ -34,6 +34,7 @@ const OrderSchema = new mongoose.Schema(
     gatewayTransactionId: { type: String }, // PayU mihpayid
     gateway: { type: String, default: null }, // e.g., 'payu'
     paymentMeta: { type: Object, default: null }, // optional raw meta such as bank_ref_num
+    placedAuditLogged: { type: Boolean, default: false },
     notes: { type: String },
     // Refund fields
     refunded: { type: Boolean, default: false },

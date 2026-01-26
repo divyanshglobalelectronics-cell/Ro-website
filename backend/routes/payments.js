@@ -133,38 +133,65 @@ router.post('/payu/callback', express.urlencoded({ extended: false }), async (re
 
     if (body.udf1) {
       try {
-        const order = await Order.findById(body.udf1);
-        if (order) {
-          if (ok && successLike) {
-            order.status = 'confirmed';
-            order.paymentMethod = order.paymentMethod || (body.mode ? String(body.mode).toLowerCase() : 'card');
-          } else if (statusLower.startsWith('fail')) {
-            order.status = 'cancelled';
-          }
-          // Persist gateway/transaction information
-          if (txnid) order.transactionId = txnid;
-          if (body.mihpayid) order.gatewayTransactionId = String(body.mihpayid);
-          order.gateway = 'payu';
-          // Store small subset of meta safely
-          order.paymentMeta = {
+        const orderId = body.udf1;
+        // Build base update for gateway fields (idempotent)
+        const baseUpdate = {
+          gateway: 'payu',
+          paymentMeta: {
             bank_ref_num: body.bank_ref_num || null,
             mode: body.mode || null,
             addedon: body.addedon || null,
             error_Message: body.error_Message || null,
-          };
-          await order.save();
+          },
+        };
+        if (txnid) baseUpdate.transactionId = txnid;
+        if (body.mihpayid) baseUpdate.gatewayTransactionId = String(body.mihpayid);
 
-          // If payment just confirmed, create an audit log now to mark the placed order
-          if (ok && successLike) {
+        // 1) Persist status and payment method deterministically
+        if (ok && successLike) {
+          await Order.findByIdAndUpdate(
+            orderId,
+            {
+              $set: {
+                ...baseUpdate,
+                status: 'confirmed',
+                paymentMethod: undefined, // keep existing if already set
+              },
+              $setOnInsert: {},
+            },
+            { new: false }
+          );
+          // Ensure paymentMethod is at least set to mode if previously empty
+          await Order.findOneAndUpdate(
+            { _id: orderId, $or: [ { paymentMethod: { $exists: false } }, { paymentMethod: null }, { paymentMethod: '' } ] },
+            { $set: { paymentMethod: (body.mode ? String(body.mode).toLowerCase() : 'card') } },
+            { new: false }
+          );
+        } else if (statusLower.startsWith('fail')) {
+          await Order.findByIdAndUpdate(orderId, { $set: { ...baseUpdate, status: 'cancelled' } }, { new: false });
+        } else {
+          // Persist gateway meta even if unverifiable, without changing status
+          await Order.findByIdAndUpdate(orderId, { $set: baseUpdate }, { new: false });
+        }
+
+        // 2) Exactly-once audit log when becoming confirmed
+        if (ok && successLike) {
+          const after = await Order.findOneAndUpdate(
+            { _id: orderId, placedAuditLogged: { $ne: true }, status: 'confirmed' },
+            { $set: { placedAuditLogged: true } },
+            { new: true }
+          ).lean();
+
+          if (after) {
             try {
               await AuditLog.create({
-                user: order.user || null,
-                userEmail: order.customer?.email || (order.user && order.user.email) || '',
-                userName: order.customer?.name || (order.user && order.user.name) || '',
+                user: after.user || null,
+                userEmail: after.customer?.email || '',
+                userName: after.customer?.name || '',
                 action: 'user_placed_order',
                 resourceType: 'order',
-                resourceId: String(order._id),
-                details: { subtotal: order.subtotal, items: order.items, paymentMethod: order.paymentMethod },
+                resourceId: String(after._id),
+                details: { subtotal: after.subtotal, items: after.items, paymentMethod: after.paymentMethod },
                 ip: req.ip,
                 userAgent: req.get('User-Agent') || '',
               });
