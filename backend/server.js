@@ -118,9 +118,9 @@ if (String(process.env.DISABLE_RATE_LIMIT)?.toLowerCase() === 'true') {
 
 // Connect to MongoDB
 const PORT = process.env.PORT || 5000;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mern-app';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/mern-app';
 
-mongoose.connect(MONGODB_URI, {})
+mongoose.connect(MONGO_URI, {})
   .then(() => {
     console.log('Connected to MongoDB');
     app.listen(PORT, () => {
