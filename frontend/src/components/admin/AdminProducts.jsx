@@ -163,9 +163,9 @@ export default function AdminProducts() {
         featured: !!editing.featured,
         status: editing.status || 'active',
         category: editing.category?._id || editing.category || '',
-        images: typeof editing.images === 'string' ? editing.images.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(editing.images) ? editing.images : []),
+        images: normalizeToArray(editing.images),
         technology: editing.technology || '',
-        techimage: typeof editing.techimage === 'string' ? editing.techimage.split(',').map(s => s.trim()).filter(Boolean) : (Array.isArray(editing.techimage) ? editing.techimage : []),
+        techimage: normalizeToArray(editing.techimage),
         rating: editing.rating || '',
         moreDetails: editing.moreDetails || ''
       };
@@ -207,17 +207,28 @@ export default function AdminProducts() {
         setSaving(false);
         return;
       }
+      
+      // Debug logging
+      console.log('Creating product with data:', {
+        images: newProduct.images,
+        imagesType: typeof newProduct.images,
+        isArray: Array.isArray(newProduct.images),
+        techimage: newProduct.techimage,
+        techimageType: typeof newProduct.techimage,
+        techIsArray: Array.isArray(newProduct.techimage)
+      });
+      
       const body = {
         title: newProduct.title,
         description: newProduct.description || '',
         price: Number(newProduct.price) || 0,
         category: newProduct.category,
-        images: newProduct.images ? newProduct.images.split(',').map(s => s.trim()).filter(Boolean) : [],
+        images: normalizeToArray(newProduct.images),
         featured: !!newProduct.featured,
         status: newProduct.status || 'active',
         technology: newProduct.technology || '',
         capacity: newProduct.capacity || '',
-        techimage: newProduct.techimage ? newProduct.techimage.split(',').map(s => s.trim()).filter(Boolean) : [],
+        techimage: normalizeToArray(newProduct.techimage),
         rating:newProduct.rating || '',
         moreDetails: newProduct.moreDetails || ''
       };
