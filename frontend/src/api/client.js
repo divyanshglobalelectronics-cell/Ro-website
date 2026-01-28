@@ -1,5 +1,5 @@
 // Secure API client: never expose sensitive data in error messages or logs
-const API_BASE = process.env.VITE_API_URL || "https://ro-website-production.up.railway.app" || 'http://localhost:5000';
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function getFullUrl(path) {
   if (path.startsWith('http')) return path;
