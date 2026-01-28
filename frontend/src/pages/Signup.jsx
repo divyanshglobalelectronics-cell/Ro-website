@@ -5,7 +5,7 @@ import { useToast } from "../context/ToastContext.jsx";
 import { FiEye, FiEyeOff, FiUser, FiMail, FiLock } from "react-icons/fi";
 
 
-  const API_BASE = import.meta.env.REACT_APP_API_URL || "";
+  const API_BASE = import.meta.env.VITE_API_URL;
 
 export default function Signup() {
   const { loginWithToken } = useAuth();
