@@ -63,7 +63,6 @@ export default function AdminProducts() {
     const capacity = (p.capacity || '').trim();
     const rating = (p.rating || '').trim();
     const moreDetails = (p.moreDetails || '').trim();
-    const status = (p.status || '').trim();
     const priceNum = Number(p.price);
     const categoryVal = p.category?._id || p.category;
     const imagesArr = normalizeToArray(p.images);
@@ -79,7 +78,6 @@ export default function AdminProducts() {
     if (techImgArr.length === 0) return { ok: false, msg: 'At least one technology image is required' };
     if (!rating) return { ok: false, msg: 'Rating is required' };
     if (!moreDetails) return { ok: false, msg: 'More Details is required' };
-    if (!status) return { ok: false, msg: 'Status is required' };
     return { ok: true };
   };
 
