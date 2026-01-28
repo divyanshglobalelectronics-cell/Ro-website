@@ -10,6 +10,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(!!token);
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const API_BASE = import.meta.env.VITE_API_URL || "https://ro-website-production.up.railway.app";
 
   useEffect(() => {
     if (token) {
@@ -17,7 +18,7 @@ export function AuthProvider({ children }) {
       // try to fetch profile
       (async () => {
         try {
-          const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+          const res = await fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
           if (!res.ok) throw new Error('not ok');
           const data = await res.json();
           setUser(data.user);
@@ -47,7 +48,7 @@ export function AuthProvider({ children }) {
   const refreshUser = async () => {
     if (!token) return null;
     try {
-      const res = await fetch('/api/auth/me', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
       setUser(data.user);
