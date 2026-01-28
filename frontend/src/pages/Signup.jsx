@@ -53,6 +53,7 @@ export default function Signup() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
       });
+      console.log(API_BASE);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Signup failed");
       loginWithToken(data.token, data.user);
