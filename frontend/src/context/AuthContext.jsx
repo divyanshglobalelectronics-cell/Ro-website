@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useToast } from './ToastContext.jsx';
 
 const AuthContext = createContext();
+const API_BASE = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -10,7 +11,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(!!token);
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const API_BASE = import.meta.env.VITE_API_URL || "https://ro-website-production.up.railway.app";
 
   useEffect(() => {
     if (token) {
