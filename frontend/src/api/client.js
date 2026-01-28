@@ -9,7 +9,10 @@ function getFullUrl(path) {
 export async function apiGet(path, token = null) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(getFullUrl(path), { headers });
+  const res = await fetch(getFullUrl(path), { 
+    headers,
+    credentials: 'include'
+  });
   if (!res.ok) {
     const msg = res.status >= 500 ? 'Server error' : `Request failed (${res.status})`;
     throw new Error(msg);
@@ -23,6 +26,7 @@ export async function apiPost(path, body, token = null) {
   const res = await fetch(getFullUrl(path), {
     method: 'POST',
     headers,
+    credentials: 'include',
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -38,6 +42,7 @@ export async function apiPut(path, body, token = null) {
   const res = await fetch(getFullUrl(path), {
     method: 'PUT',
     headers,
+    credentials: 'include',
     body: JSON.stringify(body),
   });
   if (!res.ok) {
@@ -50,7 +55,11 @@ export async function apiPut(path, body, token = null) {
 export async function apiDelete(path, token = null) {
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
-  const res = await fetch(getFullUrl(path), { method: 'DELETE', headers });
+  const res = await fetch(getFullUrl(path), { 
+    method: 'DELETE', 
+    headers,
+    credentials: 'include'
+  });
   if (!res.ok) {
     const msg = res.status >= 500 ? 'Server error' : `Request failed (${res.status})`;
     throw new Error(msg);
