@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 import { apiPost } from "../api/client";
 
 // Images
-import contactBanner from "../assets/AboutUs/6.png";
 import mapImage from "../assets/AboutUs/8.png";
 
 export default function ContactUs() {

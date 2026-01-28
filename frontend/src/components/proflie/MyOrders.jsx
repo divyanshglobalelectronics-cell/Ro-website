@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
 import Loader from '../../common/Loader.jsx';
@@ -42,7 +42,7 @@ export default function MyOrders() {
       }
     })();
   }, [token, user]);
-  function getNameandEmail() {
+  const getNameandEmail = useCallback(() => {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
@@ -50,10 +50,10 @@ export default function MyOrders() {
       setName('');
       setEmail('');
     }
-  }
+  }, [user]);
   useEffect(() => {
     getNameandEmail();
-  }, [user]);
+  }, [user, getNameandEmail]);
   if (authLoading) return <Loader label="Loading profile..." />;
 
   return (

@@ -8,7 +8,6 @@ import {
   FaCheckCircle,
 } from "react-icons/fa";
 import AboutImage from "../assets/AboutUs/10.jpg";
-import HeroImage from "../assets/AboutUs/1.png";
 import Founder from "../assets/AboutUs/founder.jpg";
 import Cofounder from "../assets/AboutUs/cofounder.jpg";
 import { useLocation, Link } from "react-router-dom";

@@ -50,22 +50,6 @@ export default function Profile() {
     return d && !isNaN(d) ? d.toLocaleDateString() : null;
   }, [user]);
 
-  const overviewEntries = useMemo(() => {
-    if (!user) return [];
-    const labelize = (k) => k
-      .replace(/_/g, ' ')
-      .replace(/([a-z])([A-Z])/g, '$1 $2')
-      .replace(/^./, (s) => s.toUpperCase());
-    // Whitelist safe fields only; exclude all sensitive/PII fields
-    const SAFE_FIELDS = new Set(['_id', 'id', 'role', 'status', 'verified', 'isadmin']);
-    return Object.entries(user)
-      .filter(([k]) => k && SAFE_FIELDS.has(k.toLowerCase()))
-      .map(([k, v]) => {
-        const isObj = v && typeof v === 'object';
-        return { key: k, label: labelize(k), isJSON: isObj, value: isObj ? JSON.stringify(v, null, 2) : (v ?? '—') };
-      });
-  }, [user]);
-
   const displayPhone = useMemo(() => {
     return (
       user?.phone || user?.mobile || user?.phoneNumber || user?.contactNumber || user?.contact || ''
