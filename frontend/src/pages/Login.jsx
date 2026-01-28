@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 
-const API_BASE = process.env.REACT_APP_API_URL || 'https://ro-website-production.up.railway.app';
+const API_BASE = 'https://ro-website-production.up.railway.app';
 
 export default function Login() {
   const { loginWithToken } = useAuth();
@@ -83,6 +83,7 @@ export default function Login() {
                 </span>
                 <input
                   type="email"
+                  autoComplete="email"
                   className="mt-0 w-full border rounded-lg px-9 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                   value={form.email}
@@ -99,6 +100,7 @@ export default function Login() {
                 </span>
                 <input
                   type={showPassword ? "text" : "password"}
+                  autoComplete="current-password"
                   className="w-full border rounded-lg px-9 py-2 pr-10 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   required
                   value={form.password}

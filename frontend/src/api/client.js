@@ -1,5 +1,5 @@
 // Secure API client: never expose sensitive data in error messages or logs
-const API_BASE = process.env.REACT_APP_API_URL || 'https://ro-website-production.up.railway.app';
+const API_BASE = 'https://ro-website-production.up.railway.app';
 
 function getFullUrl(path) {
   if (path.startsWith('http')) return path;
