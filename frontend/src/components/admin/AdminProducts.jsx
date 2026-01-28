@@ -10,7 +10,7 @@ export default function AdminProducts() {
   const [saving, setSaving] = useState(false);
   const [creating, setCreating] = useState(false);
   const [categories, setCategories] = useState([]);
-  const [newProduct, setNewProduct] = useState({ title: '', price: '', description: '', category: '', images: '' });
+  const [newProduct, setNewProduct] = useState({ title: '', price: '', description: '', category: '', images: '', status: 'active' });
   const [error, setError] = useState('');
   const { showToast } = useToast();
 
@@ -194,7 +194,7 @@ export default function AdminProducts() {
   };
 
   const openCreate = () => {
-    setNewProduct({ title: '', price: '', description: '',capacity: '', category: (categories[0]?._id) || '', images: '' });
+    setNewProduct({ title: '', price: '', description: '',capacity: '', category: (categories[0]?._id) || '', images: '', status: 'active' });
     setCreating(true);
   };
 
@@ -248,6 +248,16 @@ export default function AdminProducts() {
             <div>
               <div className="font-bold">{p.title}</div>
               <div className="text-sm text-gray-600">{p.category?.name || 'Uncategorized'}</div>
+              <div className="mt-1">
+                <span className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                  p.status === 'active' ? 'bg-green-100 text-green-800' :
+                  p.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                  p.status === 'discontinued' ? 'bg-red-100 text-red-800' :
+                  'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {p.status || 'active'}
+                </span>
+              </div>
               <div className="mt-2 text-lg font-semibold">₹ {Number(p.price).toLocaleString('en-IN')}</div>
             </div>
             <div className="flex gap-2">
@@ -311,9 +321,11 @@ export default function AdminProducts() {
               <textarea value={editing.moreDetails || ''} onChange={(e) => setEditing({ ...editing, moreDetails: e.target.value })} className="w-full border p-2 rounded mt-1" />
             </label>
             <label className="block mb-2">Status
-              <select value={editing.status} onChange={(e) => setEditing({ ...editing, status: e.target.value })} className="w-full border p-2 rounded mt-1">
-                <option value="active">active</option>
-                <option value="inactive">inactive</option>
+              <select value={editing.status || 'active'} onChange={(e) => setEditing({ ...editing, status: e.target.value })} className="w-full border p-2 rounded mt-1">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="discontinued">Discontinued</option>
+                <option value="out-of-stock">Out of Stock</option>
               </select>
             </label>
             <label className="inline-flex items-center gap-2 mt-2">
@@ -379,6 +391,14 @@ export default function AdminProducts() {
             </label>
             <label className="block mb-2">More Details
               <textarea value={newProduct.moreDetails} required onChange={(e) => setNewProduct({ ...newProduct, moreDetails: e.target.value })} className="w-full border p-2 rounded mt-1" />
+            </label>
+            <label className="block mb-2">Status
+              <select value={newProduct.status || 'active'} onChange={(e) => setNewProduct({ ...newProduct, status: e.target.value })} className="w-full border p-2 rounded mt-1">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="discontinued">Discontinued</option>
+                <option value="out-of-stock">Out of Stock</option>
+              </select>
             </label>
             <label className="inline-flex items-center gap-2 mt-2">
               <input type="checkbox" checked={!!newProduct.featured} onChange={(e) => setNewProduct({ ...newProduct, featured: e.target.checked })} />
