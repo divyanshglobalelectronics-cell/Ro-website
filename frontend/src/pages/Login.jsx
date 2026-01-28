@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { FiEye, FiEyeOff, FiLock, FiMail } from "react-icons/fi";
 
-  const API_BASE = import.meta.env.VITE_API_URL || "";
+  const API_BASE = import.meta.env.VITE_API_URL || "https://ro-website-production.up.railway.app";
 
 export default function Login() {
   const { loginWithToken } = useAuth();
