@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { apiPost } from '../api/client.js';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -13,13 +14,7 @@ export default function ForgotPassword() {
     setError('');
     try {
       //calling backend api to send the reset link on the email
-      const res = await fetch('/api/auth/forgot', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Request failed');
+      await apiPost('/api/auth/forgot', { email });
       setMessage('If the email exists, a reset link has been sent.');
     } catch (e) {
       setError(e.message || 'Request failed');

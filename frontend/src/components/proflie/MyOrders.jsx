@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { apiGet } from '../../api/client.js';
 import Loader from '../../common/Loader.jsx';
 
 export default function MyOrders() {
@@ -28,13 +29,10 @@ export default function MyOrders() {
     setLoading(true);
     (async () => {
       try {
-        const res = await fetch('/api/orders/mine', { headers: { Authorization: `Bearer ${token}` } });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed to load orders');
+        const data = await apiGet('/api/orders/mine', token);
         const uid = user?._id || user?.id;
         const onlyMine = (data.orders || []).filter(o => uid && String(o.user) === String(uid));
         setOrders(onlyMine);
-        // console.log(data);
       } catch (e) {
         setError(e.message || 'Failed to load orders');
       } finally {

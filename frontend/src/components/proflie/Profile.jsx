@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { useToast } from '../../context/ToastContext.jsx';
 import { useNavigate } from 'react-router-dom';
+import { apiGet, apiPut, apiDelete } from '../../api/client.js';
 import Loader from '../../common/Loader.jsx';
 
 export default function Profile() {
@@ -22,12 +23,7 @@ export default function Profile() {
     if (!token || deleting) return;
     setDeleting(true);
     try {
-      const res = await fetch('/api/auth/me', {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Failed to delete account');
+      await apiDelete('/api/auth/me', token);
       showToast('Account deleted', { type: 'success' });
       setConfirmOpen(false);
       logout();
@@ -91,9 +87,7 @@ export default function Profile() {
       if (!token || !user) return;
       setOrdersLoading(true);
       try {
-        const res = await fetch('/api/orders/mine', { headers: { Authorization: `Bearer ${token}` } });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || 'Failed to load orders');
+        const data = await apiGet('/api/orders/mine', token);
         if (!aborted) setOrdersCount(Array.isArray(data) ? data.length : 0);
       } catch (e) {
         if (!aborted) setOrdersCount(0);
@@ -119,13 +113,7 @@ export default function Profile() {
           ? { line1: form.addressLine1 || '', city: form.city || '', state: form.state || '', zip: form.zip || '' }
           : undefined,
       };
-      const res = await fetch('/api/auth/me', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': localStorage.getItem('auth:token') ? `Bearer ${localStorage.getItem('auth:token')}` : '' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Update failed');
+      const data = await apiPut('/api/auth/me', payload, token);
       setMessage('Profile updated');
       showToast('Profile updated', { type: 'success' });
       if (data.user) syncUser(data.user);

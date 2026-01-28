@@ -5,7 +5,7 @@ import AdminLogs from './AdminLogs.jsx';
 import Sparkline from './Sparkline.jsx';
 import ConfirmationModal from '../common/ConfirmationModal.jsx';
 import { useNavigate } from 'react-router-dom';
-import { apiGet, apiPut, apiDelete } from '../../api/client.js';
+import { apiGet, apiPut, apiDelete, apiPost } from '../../api/client.js';
 import { useToast } from '../../context/ToastContext.jsx';
 import Skeleton from '../../common/Skeleton.jsx';
 
@@ -68,17 +68,11 @@ export default function AdminDashboard() {
         }
         setCreatingUser(true);
         try {
-            const res = await fetch('/api/auth/signup', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    name: newUserForm.name,
-                    email: newUserForm.email,
-                    password: newUserForm.password,
-                }),
+            const data = await apiPost('/api/auth/signup', {
+                name: newUserForm.name,
+                email: newUserForm.email,
+                password: newUserForm.password,
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to create user');
             // If admin toggle is on, update user to admin
             if (newUserForm.isAdmin) {
                 const updated = await apiPut(`/api/admin/users/${data.user.id}`, { isAdmin: true }, token);
