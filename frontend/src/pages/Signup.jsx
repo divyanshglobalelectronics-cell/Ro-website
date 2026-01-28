@@ -4,6 +4,9 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { useToast } from "../context/ToastContext.jsx";
 import { FiEye, FiEyeOff, FiUser, FiMail, FiLock } from "react-icons/fi";
 
+
+  const API_BASE = import.meta.env.REACT_APP_API_URL || "";
+
 export default function Signup() {
   const { loginWithToken } = useAuth();
   const navigate = useNavigate();
@@ -45,7 +48,7 @@ export default function Signup() {
         showToast(err.message, { type: "error" });
         throw err;
       }
-      const res = await fetch("/api/auth/signup", {
+      const res = await fetch(`${API_BASE}/api/auth/signup`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: form.name, email: form.email, password: form.password }),
