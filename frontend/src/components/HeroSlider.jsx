@@ -44,7 +44,7 @@ export default function HeroSlider({ intervalMs = 4500, transition = 'fade', cap
                 key={i}
                 src={src}
                 alt={`Slide ${i + 1}`}
-                className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${i === idx ? 'opacity-100' : 'opacity-0'}`}
+                className={`absolute inset-0 h-full w-full transition-opacity duration-700 ${i === idx ? 'opacity-100' : 'opacity-0'}`}
               />
             ))}
           </>
@@ -55,7 +55,7 @@ export default function HeroSlider({ intervalMs = 4500, transition = 'fade', cap
               style={{ transform: `translateX(-${idx * 100}%)`, width: `${images.length * 100}%` }}
             >
               {images.map((src, i) => (
-                <img key={i} src={src} alt={`Slide ${i + 1}`} className="h-full w-full object-cover flex-shrink-0" />
+                <img key={i} src={src} alt={`Slide ${i + 1}`} className="h-full w-full  flex-shrink-0" />
               ))}
             </div>
           </div>
