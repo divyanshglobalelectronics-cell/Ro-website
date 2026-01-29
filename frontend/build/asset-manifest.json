@@ -1,7 +1,7 @@
 {
   "files": {
     "main.css": "/static/css/main.763f832c.css",
-    "main.js": "/static/js/main.204d3754.js",
+    "main.js": "/static/js/main.381d3ad6.js",
     "static/media/copper1.png": "/static/media/copper1.873d626ba9a8408f0dc8.png",
     "static/media/picture6.jpg": "/static/media/picture6.5eae7d7c33a873643a95.jpg",
     "static/media/ro-stage-1.png": "/static/media/ro-stage-1.7e1356982b7612439b12.png",
@@ -37,10 +37,10 @@
     "static/media/uv.jpg": "/static/media/uv.dce2112736d64977d941.jpg",
     "index.html": "/index.html",
     "main.763f832c.css.map": "/static/css/main.763f832c.css.map",
-    "main.204d3754.js.map": "/static/js/main.204d3754.js.map"
+    "main.381d3ad6.js.map": "/static/js/main.381d3ad6.js.map"
   },
   "entrypoints": [
     "static/css/main.763f832c.css",
-    "static/js/main.204d3754.js"
+    "static/js/main.381d3ad6.js"
   ]
 }
