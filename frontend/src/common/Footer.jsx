@@ -192,25 +192,25 @@ export default function Footer() {
           <h3 className="font-semibold text-xl mb-4">Follow Us</h3>
 
           <div className="flex md:justify-end gap-4">
-            <div
+            {/* <div
               className="w-10 h-10 bg-white rounded-md flex items-center justify-center shadow hover:scale-110 transition"
-            >
+            > */}
               <Link to="https://www.facebook.com/DivyanshGlobalRO" target="_blank" rel="noopener noreferrer">
-                <FaFacebookF className="text-blue-600 text-lg" />
+                <FaFacebookF className="text-blue-600 text-lg bg-white rounded-full h-8 w-8" />
               </Link>
               <Link to="https://www.instagram.com/divyanshglobalro?igsh=MTdna2xjZWRicXdybg==" target="_blank" rel="noopener noreferrer">
-                <FaInstagram className="text-pink-500 text-lg" />
+                <FaInstagram className="text-pink-500 text-lg bg-white rounded-full h-8 w-8" />
               </Link>
               <Link to="https://www.youtube.com/@DivyanshGlobalRO" target="_blank" rel="noopener noreferrer">
-                <FaYoutube className="text-red-500 text-lg" />
+                <FaYoutube className="text-red-500 text-lg bg-white rounded-full h-8 w-8" />
               </Link>
               <Link to="https://twitter.com/DivyanshGlobal" target="_blank" rel="noopener noreferrer">
-                <FaTwitter className="text-blue-400 text-lg" />
+                <FaTwitter className="text-blue-400 text-lg bg-white rounded-full h-8 w-8" />
               </Link>
               <Link to="https://whatsapp.com/channel/0029VbBbP3dEawdr3wYJk347" target="_blank" rel="noopener noreferrer">
-                <FaWhatsapp className="text-green-500 text-lg" />
+                <FaWhatsapp className="text-green-500 text-lg bg-white rounded-full h-8 w-8" />
               </Link>
-            </div>
+            {/* </div> */}
           </div>
         </div>
       </div>
