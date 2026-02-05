@@ -1,7 +1,7 @@
 {
   "files": {
-    "main.css": "/static/css/main.763f832c.css",
-    "main.js": "/static/js/main.381d3ad6.js",
+    "main.css": "/static/css/main.d366382c.css",
+    "main.js": "/static/js/main.cac0cb71.js",
     "static/media/copper1.png": "/static/media/copper1.873d626ba9a8408f0dc8.png",
     "static/media/picture6.jpg": "/static/media/picture6.5eae7d7c33a873643a95.jpg",
     "static/media/ro-stage-1.png": "/static/media/ro-stage-1.7e1356982b7612439b12.png",
@@ -36,11 +36,11 @@
     "static/media/other-ro.jpg": "/static/media/other-ro.496095d0d944630ab0f4.jpg",
     "static/media/uv.jpg": "/static/media/uv.dce2112736d64977d941.jpg",
     "index.html": "/index.html",
-    "main.763f832c.css.map": "/static/css/main.763f832c.css.map",
-    "main.381d3ad6.js.map": "/static/js/main.381d3ad6.js.map"
+    "main.d366382c.css.map": "/static/css/main.d366382c.css.map",
+    "main.cac0cb71.js.map": "/static/js/main.cac0cb71.js.map"
   },
   "entrypoints": [
-    "static/css/main.763f832c.css",
-    "static/js/main.381d3ad6.js"
+    "static/css/main.d366382c.css",
+    "static/js/main.cac0cb71.js"
   ]
 }
