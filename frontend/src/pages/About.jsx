@@ -323,7 +323,7 @@ export default function AboutUs() {
               </p>
 
               <div className="space-y-4 text-sm">
-                <ContactRow icon={`📞`} title={`Phone`} text={`+91 9876543210`} />
+                <ContactRow icon={`📞`} title={`Phone`} text={`+91 8948858489`} />
                 <ContactRow icon={`✉`} title={`Email`} text={`support@divyanshglobalro.com`} />
                 <ContactRow icon={`📍`} title={`Location`} text={`Noida, Uttar Pradesh, India`} />
               </div>

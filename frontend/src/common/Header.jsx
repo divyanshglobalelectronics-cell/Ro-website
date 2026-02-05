@@ -25,8 +25,7 @@ export default function Header() {
     <header className="bg-gradient-to-tr from-[#210328] to-[#410548] border-b border-gray-200 sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-indigo-800 rounded-full shadow-md flex items-center justify-center text-2xl text-white font-bold">💧</div>
-          <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent hidden sm:inline">Divyansh Global RO</span>
+        <img src='https://divyanshglobalro.com/wp-content/uploads/2025/11/Untitled-design-21-1.png' alt="Divyansh Global RO Logo" className="h-15 w-48 rounded-full object-contain" />
         </Link>
         {/* Mobile menu button */}
         <button
