@@ -2,7 +2,7 @@ import React from "react";
 import {
   FaFacebookF,
   FaInstagram,
-  FaLinkedinIn,
+  FaYoutube,
   FaTwitter,
   FaWhatsapp,
 } from "react-icons/fa";
@@ -68,7 +68,7 @@ export default function Footer() {
           </ul>
         </div>
 
-        
+
 
         {/* BUY NOW */}
         <div>
@@ -166,7 +166,7 @@ export default function Footer() {
         style={{ borderColor: "#6EC1E4" }}
       ></div>
 
-      
+
 
       {/* ================= PAYMENT + SOCIAL ================= */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-10 px-6 pb-10">
@@ -176,7 +176,7 @@ export default function Footer() {
           <h3 className="font-semibold text-xl mb-4">Payment Methods</h3>
 
           <div className="flex flex-wrap items-center gap-4">
-            {["https://th.bing.com/th/id/OIP.FtvETY1E_WFX9yKpZ057BwHaE1?w=283&h=185&c=7&r=0&o=7&cb=ucfimg2&dpr=1.2&pid=1.7&rm=3&ucfimg=1", "https://th.bing.com/th/id/OIP.ygZGQKeZ0aBwHS7e7wbJVgHaDA?w=332&h=142&c=7&r=0&o=7&cb=ucfimg2&dpr=1.2&pid=1.7&rm=3&ucfimg=1", "https://th.bing.com/th/id/OIP.oThfNl_HRn7S8vKzxowd8AHaCm?w=329&h=123&c=7&r=0&o=7&cb=ucfimg2&dpr=1.2&pid=1.7&rm=3&ucfimg=1", "https://th.bing.com/th/id/OIP.5fsr0lIr80fl7zyC-T2FTgHaEo?w=248&h=180&c=7&r=0&o=7&cb=ucfimg2&dpr=1.2&pid=1.7&rm=3&ucfimg=1"].map((img,index) => (
+            {["https://th.bing.com/th/id/OIP.FtvETY1E_WFX9yKpZ057BwHaE1?w=283&h=185&c=7&r=0&o=7&cb=ucfimg2&dpr=1.2&pid=1.7&rm=3&ucfimg=1", "https://th.bing.com/th/id/OIP.ygZGQKeZ0aBwHS7e7wbJVgHaDA?w=332&h=142&c=7&r=0&o=7&cb=ucfimg2&dpr=1.2&pid=1.7&rm=3&ucfimg=1", "https://th.bing.com/th/id/OIP.oThfNl_HRn7S8vKzxowd8AHaCm?w=329&h=123&c=7&r=0&o=7&cb=ucfimg2&dpr=1.2&pid=1.7&rm=3&ucfimg=1", "https://th.bing.com/th/id/OIP.5fsr0lIr80fl7zyC-T2FTgHaEo?w=248&h=180&c=7&r=0&o=7&cb=ucfimg2&dpr=1.2&pid=1.7&rm=3&ucfimg=1"].map((img, index) => (
               <img
                 key={img}
                 src={img}
@@ -192,16 +192,25 @@ export default function Footer() {
           <h3 className="font-semibold text-xl mb-4">Follow Us</h3>
 
           <div className="flex md:justify-end gap-4">
-            {[FaFacebookF, FaTwitter, FaLinkedinIn, FaInstagram, FaWhatsapp].map(
-              (Icon, i) => (
-                <div
-                  key={i}
-                  className="w-10 h-10 bg-white rounded-md flex items-center justify-center shadow hover:scale-110 transition"
-                >
-                  <Icon className="text-xl" style={{ color: "#072F53" }} />
-                </div>
-              )
-            )}
+            <div
+              className="w-10 h-10 bg-white rounded-md flex items-center justify-center shadow hover:scale-110 transition"
+            >
+              <Link to="https://www.facebook.com/DivyanshGlobalRO" target="_blank" rel="noopener noreferrer">
+                <FaFacebookF className="text-blue-600 text-lg" />
+              </Link>
+              <Link to="https://www.instagram.com/divyanshglobalro?igsh=MTdna2xjZWRicXdybg==" target="_blank" rel="noopener noreferrer">
+                <FaInstagram className="text-pink-500 text-lg" />
+              </Link>
+              <Link to="https://www.youtube.com/@DivyanshGlobalRO" target="_blank" rel="noopener noreferrer">
+                <FaYoutube className="text-red-500 text-lg" />
+              </Link>
+              <Link to="https://twitter.com/DivyanshGlobal" target="_blank" rel="noopener noreferrer">
+                <FaTwitter className="text-blue-400 text-lg" />
+              </Link>
+              <Link to="https://whatsapp.com/channel/0029VbBbP3dEawdr3wYJk347" target="_blank" rel="noopener noreferrer">
+                <FaWhatsapp className="text-green-500 text-lg" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>
