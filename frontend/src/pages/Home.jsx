@@ -35,6 +35,12 @@ import bgRO from "../assets/imageshome/bgRO.jpg";
 import DivyanshGlobal from "../assets/imageshome/Divyanshglobalro.png";
 import LocalRo from "../assets/imageshome/localro.jpg";
 import OtherRo from "../assets/imageshome/other-ro.jpg";
+import p1 from "../assets/ima/ph (1).jpeg";
+import p2 from "../assets/ima/ph (2).jpeg";
+import p3 from "../assets/ima/ph (3).jpeg";
+import p4 from "../assets/ima/ph (4).jpeg";
+import p5 from "../assets/ima/ph (5).jpeg";
+import p6 from "../assets/ima/ph (6).jpeg";
 
 
 export default function Home() {
@@ -463,37 +469,37 @@ export default function Home() {
               name: "Riya Sharma",
               review:
                 "Amazing RO installation service! Very fast and professional work. Highly recommended!",
-              photo: "https://i.ibb.co/z6YwHcy/user1.jpg",
+              photo: p1,
             },
             {
               name: "Amit Verma",
               review:
                 "Great experience! The RO water tastes fresh and pure. Super clean installation.",
-              photo: "https://i.ibb.co/0j9CcH4/user2.jpg",
+              photo: p2,
             },
             {
               name: "Sneha Patel",
               review:
                 "Premium installation is awesome! Technician explained everything properly.",
-              photo: "https://i.ibb.co/pdcf4Bd/user3.jpg",
+              photo: p3,
             },
             {
               name: "Kunal Singh",
               review:
                 "Affordable and quick installation. Loved the service quality!",
-              photo: "https://i.ibb.co/S0V0KjK/user4.jpg",
+              photo: p4,
             },
             {
               name: "Rohit Rajput",
               review:
                 "Premium installation is awesome! Technician explained everything properly.",
-              photo: "https://i.ibb.co/pdcf4Bd/user3.jpg",
+              photo: p5,
             },
             {
               name: "Manish Verma ",
               review:
                 "Premium installation is awesome! Technician explained everything properly.",
-              photo: "https://i.ibb.co/pdcf4Bd/user3.jpg",
+              photo: p6,
             },
           ].map((item, index) => (
             <SwiperSlide key={index}>
@@ -714,7 +720,7 @@ export default function Home() {
 
       {/* WHATSAPP FLOAT BUTTON */}
       <a
-        href="https://wa.me/91XXXXXXXXXX"
+        href="https://wa.me/918948858489"
         className="fixed bottom-6 right-6 bg-green-500 text-white p-1 rounded-full shadow-xl hover:bg-green-600 transition"
       >
         <FaSquareWhatsapp className="text-4xl rounded-full" />
