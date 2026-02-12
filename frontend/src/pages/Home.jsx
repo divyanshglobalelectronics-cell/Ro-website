@@ -466,7 +466,7 @@ export default function Home() {
         >
           {[
             {
-              name: "Riya Sharma",
+              name: "Aman Sharma",
               review:
                 "Amazing RO installation service! Very fast and professional work. Highly recommended!",
               photo: p1,
@@ -478,7 +478,7 @@ export default function Home() {
               photo: p2,
             },
             {
-              name: "Sneha Patel",
+              name: "Rahul Patel",
               review:
                 "Premium installation is awesome! Technician explained everything properly.",
               photo: p3,
